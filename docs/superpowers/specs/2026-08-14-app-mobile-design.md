@@ -210,9 +210,26 @@ rapporterait pour cinq écrans mono-utilisateur.
 Notifications push, mode hors-ligne, multi-utilisateur, rafraîchissement de
 jeton, publication sur le Play Store, support iOS.
 
-## Note
+## Suite
 
-Le projet n'est pas sous contrôle de version (`git rev-parse` échoue). Ce
-document ne peut pas être commité en l'état. Initialiser un dépôt serait
-souhaitable avant de démarrer l'implémentation, qui touche à la fois au backend
-existant et à une nouvelle arborescence.
+Implémenté le 2026-08-14, en quatre commits :
+
+| Commit | Contenu |
+|---|---|
+| `62f0471` | dépôt git initialisé sur l'état existant |
+| `4d1a9f5` | extraction de `service.py` |
+| `a69fb8e` | API `/api/v1` et 73 tests |
+| `74c8c7f` | app Expo et TLS épinglé |
+
+Écarts par rapport au design, tous vérifiés :
+
+- `expo-share-intent` v5 au lieu de v4 — la v4 exige Expo 53, le projet est en
+  54. Option `disableIOS` ajoutée : le plugin réclamait sinon un
+  `bundleIdentifier` iOS qui n'a pas lieu d'exister sur un projet Android.
+- Filtre d'intention sur `text/*` plutôt que `text/plain` seul, pour couvrir les
+  variantes de type MIME sans rien perdre.
+- Port 8443 plutôt que 443 : gunicorn tourne sans privilège root.
+- `throttle.py` extrait en plus du découpage prévu, pour que le panel et l'API
+  partagent un seul compteur de tentatives.
+- Correction imprévue dans `task_doctor`, qui ne rattrapait que `SpotifyError` :
+  une coupure réseau faisait planter le diagnostic.
