@@ -17,7 +17,6 @@ Exposition directe sur le réseau (sans proxy), LAN ou VPN de confiance :
 import functools
 import os
 import secrets
-import time
 import traceback
 
 from flask import (
@@ -36,7 +35,7 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import spotify_sort
-from spotify_sort import auth, config, jobs, service
+from spotify_sort import auth, config, jobs, service, throttle
 from spotify_sort.service import LIKED, PLAYLISTS, REFERENCES
 
 # Le serveur n'a pas de navigateur : la CLI ne doit pas tenter d'en ouvrir un.
@@ -100,6 +99,12 @@ def create_app() -> Flask:
     _warn_about_exposure(secure)
     _warn_about_oauth()
     _register(app)
+
+    # Importé ici et non en tête de fichier : api.py n'a pas besoin de webapp,
+    # mais l'inverse serait un cycle si l'import se faisait au chargement.
+    from api import api as api_blueprint
+
+    app.register_blueprint(api_blueprint)
     return app
 
 
@@ -151,21 +156,12 @@ def _warn_about_exposure(secure: bool) -> None:
 
 
 # --- Authentification -------------------------------------------------------
+#
+# La limite de tentatives vit dans `throttle` : le panel et l'API partagent le
+# même compteur, sinon l'un contourne la limite de l'autre.
 
-_ATTEMPTS: dict[str, list[float]] = {}
-_MAX_ATTEMPTS = 8
-_WINDOW = 300.0
-
-
-def _throttled(ip: str) -> bool:
-    now = time.time()
-    hits = [t for t in _ATTEMPTS.get(ip, []) if now - t < _WINDOW]
-    _ATTEMPTS[ip] = hits
-    return len(hits) >= _MAX_ATTEMPTS
-
-
-def _record_attempt(ip: str) -> None:
-    _ATTEMPTS.setdefault(ip, []).append(time.time())
+_throttled = throttle.throttled
+_record_attempt = throttle.record
 
 
 def login_required(view):
@@ -230,6 +226,11 @@ def _register(app: Flask) -> None:
 
     @app.before_request
     def _guard():
+        # L'API s'authentifie par jeton porteur, sans cookie : aucun site tiers
+        # ne peut lui faire émettre de requête authentifiée, donc pas de CSRF à
+        # protéger. Lui imposer le jeton du panel la rendrait inutilisable.
+        if request.blueprint == "api":
+            return None
         if request.method == "POST":
             sent = request.form.get("csrf") or request.headers.get("X-CSRF-Token")
             if not sent or not secrets.compare_digest(sent, session.get("csrf", "")):

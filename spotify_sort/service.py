@@ -178,8 +178,10 @@ def task_doctor():
         print("  ✓ création (POST /me/playlists)")
         spotify.unfollow_playlist(pid)
         print("  ✓ suppression de la playlist de test")
-    except SpotifyError as exc:
-        print(f"  ✗ {exc}")
+    except Exception as exc:
+        # Pas seulement SpotifyError : une coupure réseau ne doit pas faire
+        # échouer le diagnostic, dont le rôle est justement de la rapporter.
+        print(f"  ✗ {error_text(exc)}")
     return True
 
 
