@@ -286,6 +286,41 @@ WantedBy=multi-user.target
 Mets plutôt les secrets dans un fichier `EnvironmentFile=` en `chmod 600` : les
 `Environment=` d'une unité systemd sont lisibles par tous via `systemctl show`.
 
+## App Android
+
+Une app native pilote le tout depuis le téléphone, avec la même couverture que
+le panel. Le geste qui la justifie : depuis Spotify, « Partager → spotify-sort »
+classe le titre et l'ajoute aux playlists comme aux likés.
+
+```
+mobile/          projet Expo — voir mobile/README.md
+api.py           API JSON /api/v1 consommée par l'app
+```
+
+L'app s'authentifie avec le même `WEB_PASSWORD`, échangé une fois contre un
+jeton conservé dans le stockage sécurisé du téléphone. Le serveur est joint en
+TLS avec un certificat auto-signé que l'app est seule à accepter — voir
+`deploy/README.md`, section 4.
+
+### Architecture
+
+```
+spotify_sort/service.py   tâches métier, aucune dépendance Flask
+webapp.py                 façade HTML : Jinja, session cookie, CSRF
+api.py                    façade JSON : jeton porteur, erreurs à codes stables
+```
+
+Les deux façades partagent `service.py` et `jobs.py` : l'app et le panel voient
+le même job en cours et les mêmes fichiers de sortie. Un tri lancé depuis le
+téléphone se suit depuis l'ordinateur, et réciproquement.
+
+### Tests
+
+```bash
+python -m pytest          # 73 tests : API, jobs, service, non-régression du panel
+cd mobile && npm test     # client API contre un serveur local
+```
+
 ## Dépannage
 
 ```bash

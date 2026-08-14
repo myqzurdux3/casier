@@ -13,10 +13,17 @@ WorkingDirectory=/opt/spotify-sort
 EnvironmentFile=/etc/spotify-sort.env
 
 # BIND vient de l'EnvironmentFile : 127.0.0.1:8000 derrière un proxy,
-# 0.0.0.0:8000 pour une exposition directe.
+# 0.0.0.0:8443 pour une exposition directe en TLS.
+#
+# TLS servi par gunicorn lui-même, sans reverse proxy. Les certificats sont
+# produits par deploy/make-certs.sh ; l'app Android n'accepte que cette
+# autorité pour cet hôte. Pour un déploiement derrière un proxy qui termine le
+# TLS, retirer les deux lignes --certfile/--keyfile et mettre TRUST_PROXY=1.
 ExecStart=/opt/spotify-sort/.venv/bin/gunicorn \
     --workers 1 \
     --bind ${BIND} \
+    --certfile /opt/spotify-sort/secrets/server.crt \
+    --keyfile /opt/spotify-sort/secrets/server.key \
     --timeout 0 \
     --access-logfile - \
     webapp:app

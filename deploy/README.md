@@ -54,7 +54,55 @@ journalctl -u spotify-sort -f
 
 Le service survit à la fermeture du terminal et redémarre au boot.
 
-## 4. HTTPS
+## 4. TLS pour l'app Android
+
+L'app Android n'accepte qu'une autorité : la tienne. Génère-la sur le serveur.
+
+```bash
+cd /opt/spotify-sort
+sudo -u spotify-sort ./deploy/make-certs.sh 192.0.2.10
+```
+
+Produit dans `secrets/` :
+
+| Fichier | Rôle |
+|---|---|
+| `ca.crt` | autorité — à copier dans `mobile/assets/ca.crt` |
+| `ca.key` | **à mettre hors ligne puis supprimer du serveur** |
+| `server.crt`, `server.key` | servis par gunicorn |
+
+`ca.key` est la seule vraie clé sensible du dispositif : qui la détient peut
+forger un certificat que ton app acceptera. Le serveur n'en a pas besoin une
+fois `server.crt` émis — copie-la sur une clé USB et supprime-la du VPS.
+
+Dans `/etc/spotify-sort.env` :
+
+```
+BIND=0.0.0.0:8443
+BASE_URL=https://192.0.2.10:8443
+```
+
+L'unité systemd passe déjà `--certfile` et `--keyfile` à gunicorn. Redémarre :
+
+```bash
+sudo systemctl restart spotify-sort
+curl --cacert /opt/spotify-sort/secrets/ca.crt https://192.0.2.10:8443/login
+```
+
+Puis côté app, voir `mobile/README.md`.
+
+### Renouvellement
+
+Les certificats durent dix ans. S'ils sont régénérés, ou si `ca.key` fuit,
+il faut **reconstruire et réinstaller l'APK** : l'ancienne autorité y est
+embarquée. L'app affiche alors un message explicite plutôt qu'une erreur réseau
+générique.
+
+## 5. HTTPS avec un domaine (alternative)
+
+Si tu préfères un certificat reconnu par les navigateurs — utile pour consulter
+le panel depuis n'importe où sans avertissement — retire `--certfile`/`--keyfile`
+de l'unité, remets `BIND=127.0.0.1:8000`, et place Caddy devant.
 
 Règle Spotify, citée de la documentation :
 

@@ -14,3 +14,10 @@ __pycache__/
 node_modules/
 .expo/
 *.apk
+
+# Projet natif régénéré par `expo prebuild`.
+mobile/android/
+mobile/ios/
+mobile/dist/
+# Autorité propre à chaque déploiement, copiée depuis secrets/.
+mobile/assets/ca.crt
