@@ -15,13 +15,29 @@ module.exports = {
     orientation: 'portrait',
     scheme: 'spotifysort',
     userInterfaceStyle: 'dark',
+    icon: './assets/icon.png',
+    // Icônes produites par tools/make-icons.py. Motif propre au projet : le
+    // logo Spotify est une marque déposée, et leurs Developer Terms interdisent
+    // de l'employer comme icône d'application.
     android: {
       package: 'fr.spotifysort.app',
       versionCode: 1,
       permissions: ['INTERNET'],
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#121212',
+      },
     },
     plugins: [
       'expo-router',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          backgroundColor: '#121212',
+          imageWidth: 200,
+        },
+      ],
       'expo-secure-store',
       // `disableIOS` parce que le projet est Android uniquement : sans cela le
       // plugin exige un bundleIdentifier iOS qui n'a pas lieu d'exister.

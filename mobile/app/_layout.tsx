@@ -1,60 +1,40 @@
 /**
- * Racine de l'app : restaure la session avant d'afficher quoi que ce soit, et
- * renvoie vers la connexion dès qu'un `401` invalide le jeton.
+ * Racine de l'app.
+ *
+ * Rend `<Stack>` dès le premier rendu et ne le démonte jamais : Expo Router
+ * exige un navigateur en permanence à la racine. Substituer un écran d'attente
+ * le temps de relire le jeton faisait boucler React — « Maximum update depth
+ * exceeded » dans SceneView — et l'app se fermait au lancement.
+ *
+ * L'état d'authentification vit donc dans un contexte, et c'est `app/index.tsx`
+ * — un écran, donc monté après le navigateur — qui redirige.
  */
 
-import { Stack, router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Loading } from '@/components/Feedback';
-import * as api from '@/lib/api';
-import * as session from '@/lib/session';
-import { colors, styles } from '@/lib/theme';
+import { AuthProvider } from '@/lib/auth';
+import { colors } from '@/lib/theme';
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    api.configure({
-      onUnauthorized: () => {
-        void session.clear();
-        router.replace('/login');
-      },
-    });
-
-    session
-      .load()
-      .then((restored) => {
-        if (!restored) router.replace('/login');
-      })
-      .finally(() => setReady(true));
-  }, []);
-
-  if (!ready) {
-    return (
-      <View style={[styles.screen, { justifyContent: 'center' }]}>
-        <Loading />
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.card },
-          headerTintColor: colors.text,
-          contentStyle: { backgroundColor: colors.bg },
-        }}
-      >
-        <Stack.Screen name="login" options={{ title: 'Connexion' }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="job" options={{ title: 'Progression' }} />
-      </Stack>
-    </SafeAreaProvider>
+    <AuthProvider>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ title: 'Connexion' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="job" options={{ title: 'Progression' }} />
+        </Stack>
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 }

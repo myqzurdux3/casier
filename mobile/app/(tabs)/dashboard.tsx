@@ -6,7 +6,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 
 import { Empty, ErrorBanner, Loading } from '@/components/Feedback';
 import * as api from '@/lib/api';
-import * as session from '@/lib/session';
+import { useAuth } from '@/lib/auth';
 import { bannerStyle, styles } from '@/lib/theme';
 
 const ACTIONS: { action: api.JobAction; label: string; hint: string }[] = [
@@ -19,6 +19,7 @@ const ACTIONS: { action: api.JobAction; label: string; hint: string }[] = [
 ];
 
 export default function DashboardScreen() {
+  const { signOut } = useAuth();
   const [status, setStatus] = useState<api.Status | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -59,7 +60,7 @@ export default function DashboardScreen() {
     try {
       await api.logout();
     } finally {
-      await session.clear();
+      await signOut();
       router.replace('/login');
     }
   }

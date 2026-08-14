@@ -20,8 +20,10 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
+      {/* `dashboard` et non `index` : `app/index.tsx` occupe déjà « / » comme
+          écran d'aiguillage. Deux routes pour le même chemin ne se résolvent pas. */}
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{ title: 'Tableau de bord', tabBarLabel: 'Accueil', tabBarIcon: icon('🏠') }}
       />
       <Tabs.Screen

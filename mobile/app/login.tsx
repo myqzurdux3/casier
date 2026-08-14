@@ -1,25 +1,20 @@
 /** Connexion : adresse du serveur et mot de passe, échangés contre un jeton. */
 
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { ErrorBanner } from '@/components/Feedback';
 import * as api from '@/lib/api';
-import * as session from '@/lib/session';
+import { useAuth } from '@/lib/auth';
 import { styles } from '@/lib/theme';
 
 export default function LoginScreen() {
-  const [baseUrl, setBaseUrl] = useState(session.defaultBaseUrl);
+  const { baseUrl: known, signIn } = useAuth();
+  const [baseUrl, setBaseUrl] = useState(known);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    void session.load().then((restored) => {
-      if (restored) setBaseUrl(restored.baseUrl);
-    });
-  }, []);
 
   async function submit() {
     setBusy(true);
@@ -28,9 +23,11 @@ export default function LoginScreen() {
       const url = baseUrl.trim().replace(/\/+$/, '');
       api.configure({ baseUrl: url });
       const token = await api.login(password, `${Platform.OS} ${Platform.Version}`);
-      await session.save(url, token);
+      await signIn(url, token);
       setPassword('');
-      router.replace('/');
+      // Navigation impérative depuis un gestionnaire d'événement : le
+      // navigateur est monté depuis longtemps, c'est sans risque.
+      router.replace('/dashboard');
     } catch (err) {
       setError(err);
     } finally {
