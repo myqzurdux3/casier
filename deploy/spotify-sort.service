@@ -12,8 +12,15 @@ WorkingDirectory=/opt/spotify-sort
 # Secrets hors de l'unité : `systemctl show` expose les Environment= à tous.
 EnvironmentFile=/etc/spotify-sort.env
 
+# ProtectHome=true masque /home, or gunicorn écrit dans $HOME au démarrage
+# (serveur de contrôle) : sans ces deux lignes il journalise une erreur de
+# permission à chaque lancement. StateDirectory crée le dossier avec le bon
+# propriétaire, systemd s'en charge.
+StateDirectory=spotify-sort
+Environment=HOME=/var/lib/spotify-sort
+
 # BIND vient de l'EnvironmentFile : 127.0.0.1:8000 derrière un proxy,
-# 0.0.0.0:8443 pour une exposition directe en TLS.
+# 0.0.0.0:8000 pour une exposition directe en TLS.
 #
 # TLS servi par gunicorn lui-même, sans reverse proxy. Les certificats sont
 # produits par deploy/make-certs.sh ; l'app Android n'accepte que cette

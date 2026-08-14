@@ -58,7 +58,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-          placeholder="https://192.0.2.10:8443"
+          placeholder="https://192.0.2.10:8000"
           placeholderTextColor="#6b6b70"
         />
 

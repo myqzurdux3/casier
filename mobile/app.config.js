@@ -2,10 +2,10 @@
 // depuis l'environnement : il apparaît à la fois dans la configuration réseau
 // Android (quel hôte épingler) et dans les valeurs par défaut de l'app.
 //
-//   SPOTIFY_SORT_HOST=192.0.2.10 SPOTIFY_SORT_PORT=8443 npx expo prebuild
+//   SPOTIFY_SORT_HOST=192.0.2.10 SPOTIFY_SORT_PORT=8000 npx expo prebuild
 
 const HOST = process.env.SPOTIFY_SORT_HOST || '192.0.2.10';
-const PORT = process.env.SPOTIFY_SORT_PORT || '8443';
+const PORT = process.env.SPOTIFY_SORT_PORT || '8000';
 
 module.exports = {
   expo: {

@@ -78,18 +78,33 @@ fois `server.crt` émis — copie-la sur une clé USB et supprime-la du VPS.
 Dans `/etc/spotify-sort.env` :
 
 ```
-BIND=0.0.0.0:8443
-BASE_URL=https://192.0.2.10:8443
+BIND=0.0.0.0:8000
+BASE_URL=https://192.0.2.10:8000
 ```
 
 L'unité systemd passe déjà `--certfile` et `--keyfile` à gunicorn. Redémarre :
 
 ```bash
 sudo systemctl restart spotify-sort
-curl --cacert /opt/spotify-sort/secrets/ca.crt https://192.0.2.10:8443/login
+curl --cacert /opt/spotify-sort/secrets/ca.crt https://192.0.2.10:8000/login
 ```
 
 Puis côté app, voir `mobile/README.md`.
+
+### Choisir le port
+
+Le port sert à la fois au panel et à l'app — un seul, en TLS. Beaucoup
+d'hébergeurs n'ouvrent qu'une poignée de ports dans leur pare-feu amont, hors
+de la machine : `ufw status` et `iptables -S` ne montrent alors rien alors que
+le port reste injoignable de l'extérieur. Vérifie avant de choisir :
+
+```bash
+# depuis une AUTRE machine
+openssl s_client -connect 192.0.2.10:8000 -CAfile ca.crt </dev/null
+```
+
+Sur cette installation, 8443 est filtré en amont et 8000 est ouvert : d'où
+`BIND=0.0.0.0:8000`. Le port doit être le même dans `mobile/eas.json`.
 
 ### Renouvellement
 
@@ -231,5 +246,13 @@ Causes fréquentes : `BASE_URL` absent, slash final en trop, `http` au lieu de
 `http://`), ou `www.` d'un côté seulement.
 
 **Token perdu à chaque redémarrage** — `ProtectHome=true` masque `/home`. L'unité
-force `HOME=/var/lib/spotify-sort` ; si tu changes d'utilisateur, ajuste aussi
-`ReadWritePaths`.
+force `HOME=/var/lib/spotify-sort` via `StateDirectory` ; si tu changes
+d'utilisateur, ajuste aussi `ReadWritePaths`.
+
+**`Control server error: Permission denied: '/home/...'`** — gunicorn écrit dans
+`$HOME` au démarrage, que `ProtectHome=true` masque. C'est ce que corrigent
+`StateDirectory=spotify-sort` et `Environment=HOME=/var/lib/spotify-sort` dans
+l'unité. Sans conséquence sur le service, mais le journal en est pollué.
+
+**Le port répond en local mais pas de l'extérieur** — pare-feu de l'hébergeur,
+en amont de la machine. Voir « Choisir le port ».
