@@ -30,6 +30,8 @@ module.exports = {
       // Épinglage : l'app ne fait confiance qu'à notre autorité pour cet hôte,
       // et refuse explicitement les autorités système. Voir plugins/.
       ['./plugins/withCertificatePinning', { host: HOST }],
+      // Ne fait rien tant que SPOTIFY_SORT_KEYSTORE n'est pas défini.
+      './plugins/withReleaseSigning',
     ],
     extra: {
       defaultBaseUrl: `https://${HOST}:${PORT}`,

@@ -21,3 +21,5 @@ mobile/ios/
 mobile/dist/
 # Autorité propre à chaque déploiement, copiée depuis secrets/.
 mobile/assets/ca.crt
+# Clé de signature de l'APK — à sauvegarder hors dépôt.
+mobile/*.keystore

@@ -21,19 +21,68 @@ cp ../secrets/ca.crt assets/ca.crt      # depuis le serveur
 Sans `assets/ca.crt`, `expo prebuild` s'arrête avec un message explicite : un
 APK sans l'autorité ne pourrait joindre aucun serveur.
 
-## Construire l'APK
+## Construire l'APK en local
+
+Sans compte Expo ni service tiers. Prérequis : JDK 17 et le SDK Android
+(`ANDROID_HOME`).
+
+### Une seule fois — la clé de signature
 
 ```bash
-npx eas login
-npm run build:apk
+keytool -genkeypair -v -storetype PKCS12 -keystore spotify-sort.keystore \
+  -alias spotify-sort -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-EAS construit sur ses serveurs et renvoie un lien de téléchargement. Installe le
-fichier sur le téléphone (autoriser « sources inconnues » à la première fois).
+**Garde ce fichier hors du dépôt et sauvegarde-le.** Android refuse de mettre à
+jour une app dont la signature a changé : le perdre oblige à désinstaller puis
+réinstaller, donc à se reconnecter.
 
-Pour changer d'adresse de serveur, édite `eas.json` (`SPOTIFY_SORT_HOST` et
-`SPOTIFY_SORT_PORT`) — l'hôte entre à la fois dans l'épinglage du certificat et
-dans l'adresse proposée à la connexion.
+### À chaque construction
+
+```bash
+export SPOTIFY_SORT_KEYSTORE=$PWD/spotify-sort.keystore
+export SPOTIFY_SORT_KEYSTORE_PASSWORD='…'
+
+npx expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease
+```
+
+APK dans `android/app/build/outputs/apk/release/app-release.apk`. Compter une
+dizaine de minutes la première fois, beaucoup moins ensuite.
+
+Sans ces variables la construction fonctionne quand même : `withReleaseSigning`
+ne s'active pas et Gradle retombe sur la clé de debug d'Expo. Suffisant pour un
+essai, à éviter pour l'app que tu gardes.
+
+### Installer
+
+```bash
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+```
+
+Ou copie l'APK sur le téléphone et ouvre-le.
+
+### Vérifier ce que contient l'APK
+
+```bash
+apksigner verify --print-certs app-release.apk
+unzip -p app-release.apk res/DB.crt | openssl x509 -noout -fingerprint -sha256
+```
+
+L'empreinte doit être celle de `secrets/ca.crt` sur le serveur. Le nom du
+fichier de ressource change d'une construction à l'autre — AAPT renomme les
+ressources en release.
+
+### Alternative : EAS Build
+
+```bash
+npx eas login && npm run build:apk
+```
+
+Construit dans le cloud, gère la signature tout seul. Utile sans SDK Android
+local. Pour changer d'adresse de serveur, édite `eas.json`
+(`SPOTIFY_SORT_HOST`, `SPOTIFY_SORT_PORT`) — l'hôte entre à la fois dans
+l'épinglage et dans l'adresse proposée à la connexion.
 
 ## Développement
 
