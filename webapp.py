@@ -15,12 +15,10 @@ Exposition directe sur le réseau (sans proxy), LAN ou VPN de confiance :
 """
 
 import functools
-import json
 import os
 import secrets
 import time
 import traceback
-from pathlib import Path
 
 from flask import (
     Flask,
@@ -38,14 +36,8 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import spotify_sort
-from spotify_sort import auth, classify, config, export, jobs
-from spotify_sort import importer as import_module
-from spotify_sort.spotify import Spotify, SpotifyError, ensure_liked, parse_track_id
-
-OUT = Path(os.environ.get("SPOTIFY_SORT_OUT", config.STATE_DIR / "out"))
-LIKED = OUT / "liked.json"
-PLAYLISTS = OUT / "playlists.json"
-REFERENCES = OUT / "references.json"
+from spotify_sort import auth, config, jobs, service
+from spotify_sort.service import LIKED, PLAYLISTS, REFERENCES
 
 # Le serveur n'a pas de navigateur : la CLI ne doit pas tenter d'en ouvrir un.
 os.environ.setdefault("SPOTIFY_SORT_HEADLESS", "1")
@@ -195,20 +187,8 @@ def _csrf_token() -> str:
 # --- Aides ------------------------------------------------------------------
 
 
-def _load(path: Path):
-    return json.loads(path.read_text()) if path.exists() else None
-
-
-def _error_text(exc: BaseException) -> str:
-    """Message lisible pour une exception quelconque.
-
-    `str(exc)` seul est souvent vide (ConnectionError, KeyError…) : sans le nom
-    de la classe, l'utilisateur n'a rien pour diagnostiquer.
-    """
-    message = str(exc).strip()
-    if isinstance(exc, SpotifyError):
-        return message
-    return f"{exc.__class__.__name__} : {message}" if message else exc.__class__.__name__
+_load = service.load
+_error_text = service.error_text
 
 
 def _redirect_uri() -> str:
@@ -224,121 +204,6 @@ def _start(name: str, fn, *args, **kwargs):
         return redirect(url_for("job_page", job_id=busy.id))
     job = jobs.start(name, fn, *args, **kwargs)
     return redirect(url_for("job_page", job_id=job.id))
-
-
-# --- Tâches de fond ---------------------------------------------------------
-
-
-def _task_fetch():
-    spotify = Spotify()
-    print("Récupération des titres likés…")
-    tracks = spotify.liked_tracks()
-    OUT.mkdir(parents=True, exist_ok=True)
-    LIKED.write_text(json.dumps(tracks, ensure_ascii=False, indent=2))
-    print(f"{len(tracks)} titres récupérés.")
-    print("Récupération des genres des artistes…")
-    if spotify.attach_artist_genres(tracks):
-        LIKED.write_text(json.dumps(tracks, ensure_ascii=False, indent=2))
-        print("Genres ajoutés.")
-    return len(tracks)
-
-
-def _task_reference():
-    spotify = Spotify()
-    references: dict[str, list[dict]] = {}
-    for name, key in config.REFERENCE_PLAYLISTS.items():
-        playlist = spotify.find_playlist(name)
-        if not playlist:
-            print(f"  ✗ « {name} » introuvable sur le compte — ignorée.")
-            continue
-        items = spotify.playlist_items(playlist["id"])
-        references.setdefault(key, []).extend(items)
-        print(f"  ✓ « {name} » → `{key}` : {len(items)} titres")
-    OUT.mkdir(parents=True, exist_ok=True)
-    REFERENCES.write_text(json.dumps(references, ensure_ascii=False, indent=2))
-    return {k: len(v) for k, v in references.items()}
-
-
-def _task_sort(limit: int | None):
-    if not LIKED.exists():
-        _task_fetch()
-    tracks = _load(LIKED) or []
-    if limit:
-        tracks = tracks[:limit]
-        print(f"Limité à {len(tracks)} titres.")
-
-    if config.REFERENCE_PLAYLISTS and not REFERENCES.exists():
-        print("Récupération des playlists de référence…")
-        _task_reference()
-
-    assignments = classify.classify(tracks, _load(REFERENCES) or {})
-    document = export.build_document(tracks, assignments)
-    export.write(document, OUT)
-    print("\n" + export.summary(document))
-    return {"playlists": len(document["playlists"]), "tracks": document["track_count"]}
-
-
-def _task_import(only: list[str] | None, public: bool | None):
-    import_module.run(PLAYLISTS, only=only, public=public)
-    return True
-
-
-def _task_sync_likes():
-    """Like tout titre présent dans une playlist mais absent des Titres likés."""
-    spotify = Spotify()
-    print("Lecture des Titres likés…")
-    saved = spotify.saved_track_ids()
-    print(f"{len(saved)} déjà likés.")
-
-    playlists = spotify.existing_playlists()
-    print(f"Analyse de {len(playlists)} playlists…")
-
-    missing = []
-    for name, playlist_id in playlists.items():
-        absent = [t["id"] for t in spotify.playlist_items(playlist_id) if t["id"] not in saved]
-        if absent:
-            missing.extend(absent)
-            print(f"  {name} : {len(absent)} hors des likés")
-
-    every = list(dict.fromkeys(missing))
-    if not every:
-        print("\nRien à faire — toutes les playlists sont couvertes par les likés.")
-        return 0
-
-    added = spotify.save_tracks(every)
-    print(f"\n{added} titres ajoutés aux Titres likés.")
-    return added
-
-
-def _task_doctor():
-    spotify = Spotify()
-    print("Scopes accordés :")
-    granted = auth.granted_scopes()
-    for scope in config.SCOPES:
-        print(f"  {'✓' if scope in granted else '✗'} {scope}")
-
-    print("\nAccès API :")
-    checks = [
-        ("profil", lambda: spotify.me()["id"]),
-        ("titres likés", lambda: f"{spotify._request('GET', '/me/tracks', params={'limit': 1})['total']} titres"),
-        ("playlists", lambda: f"{spotify._request('GET', '/me/playlists', params={'limit': 1})['total']} playlists"),
-        ("catalogue", lambda: spotify._request("GET", "/artists/0TnOYISbd1XYRBk9myaseg")["name"]),
-    ]
-    for label, fn in checks:
-        try:
-            print(f"  ✓ {label} — {fn()}")
-        except Exception as exc:
-            print(f"  ✗ {label} — {exc}")
-
-    print("\nÉcriture :")
-    try:
-        pid = spotify.create_playlist("spotify-sort — test", "Test, supprimé aussitôt.", False)
-        print("  ✓ création (POST /me/playlists)")
-        spotify.unfollow_playlist(pid)
-        print("  ✓ suppression de la playlist de test")
-    except SpotifyError as exc:
-        print(f"  ✗ {exc}")
-    return True
 
 
 # --- Routes -----------------------------------------------------------------
@@ -463,35 +328,27 @@ def _register(app: Flask) -> None:
             references=_load(REFERENCES) or {},
             base_url=config.BASE_URL,
             redirect_uri=_redirect_uri(),
-            anthropic_ready=bool(
-                os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
-            ),
+            anthropic_ready=service.anthropic_ready(),
         )
 
     @app.post("/run/<action>")
     @login_required
     def run(action):
-        if action != "doctor" and not auth.has_token():
+        if action in service.NEEDS_SPOTIFY and not auth.has_token():
             flash("Connecte d'abord ton compte Spotify.", "error")
             return redirect(url_for("index"))
 
-        if action == "fetch":
-            return _start("Récupération des likés", _task_fetch)
-        if action == "reference":
-            return _start("Playlists de référence", _task_reference)
-        if action == "doctor":
-            return _start("Diagnostic", _task_doctor)
-        if action == "sync-likes":
-            return _start("Rattrapage des likes", _task_sync_likes)
-        if action == "sort":
-            raw = request.form.get("limit", "").strip()
-            limit = int(raw) if raw.isdigit() and int(raw) > 0 else None
-            return _start("Classement", _task_sort, limit)
-        if action == "import":
-            only = request.form.getlist("keys") or None
-            public = request.form.get("public") == "1"
-            return _start("Import vers Spotify", _task_import, only, public)
-        abort(404)
+        raw = request.form.get("limit", "").strip()
+        params = {
+            "limit": int(raw) if raw.isdigit() and int(raw) > 0 else None,
+            "only": request.form.getlist("keys") or None,
+            "public": request.form.get("public") == "1",
+        }
+        try:
+            name, fn, args = service.job_for(action, params)
+        except ValueError:
+            abort(404)
+        return _start(name, fn, *args)
 
     @app.get("/jobs/<job_id>")
     @login_required
@@ -517,14 +374,11 @@ def _register(app: Flask) -> None:
     @app.post("/result/remove")
     @login_required
     def result_remove():
-        document = _load(PLAYLISTS) or abort(404)
-        key = request.form.get("key")
-        track_id = request.form.get("track_id")
-        for playlist in document["playlists"]:
-            if playlist["key"] == key:
-                playlist["track_ids"] = [t for t in playlist["track_ids"] if t != track_id]
-        document["playlists"] = [p for p in document["playlists"] if p["track_ids"]]
-        PLAYLISTS.write_text(json.dumps(document, ensure_ascii=False, indent=2))
+        key = request.form.get("key", "")
+        try:
+            service.remove_from_result(key, request.form.get("track_id", ""))
+        except FileNotFoundError:
+            abort(404)
         flash("Titre retiré de la playlist.", "ok")
         return redirect(url_for("result") + f"#{key}")
 
@@ -539,7 +393,7 @@ def _register(app: Flask) -> None:
             link = request.form.get("link", "").strip()
             add = request.form.get("add") == "1"
             try:
-                results = _classify_one(link, add)
+                results = [service.classify_one(link, add)]
             except Exception as exc:
                 # Réseau coupé, Claude injoignable, réponse inattendue… : tout
                 # doit revenir sur la page plutôt que de finir en 500 opaque.
@@ -587,52 +441,11 @@ def _register(app: Flask) -> None:
                     or "Catégorie personnalisée.",
                 }
 
-            config.save_settings(data)
+            service.update_settings(data)
             flash("Réglages enregistrés.", "ok")
             return redirect(url_for("settings"))
 
         return render_template("settings.html", settings=config.current_settings())
-
-
-def _classify_one(link: str, add: bool) -> list[dict]:
-    # Lien analysé avant d'ouvrir la session : un lien fautif ne doit pas coûter
-    # un rafraîchissement de token ni masquer son erreur derrière une erreur d'auth.
-    track_id = parse_track_id(link)
-    spotify = Spotify()
-    track = spotify.track(track_id)
-    spotify.attach_artist_genres([track])
-    assignments = classify.classify([track], _load(REFERENCES) or {})
-
-    existing = spotify.existing_playlists() if add else {}
-    rows = []
-
-    if add:
-        # Un titre rangé dans une playlist doit aussi être dans les Titres likés.
-        try:
-            liked = ensure_liked(spotify, [track["id"]])
-            rows.append(
-                {
-                    "name": "Titres likés",
-                    "status": "ajouté" if liked else "déjà présent",
-                }
-            )
-        except SpotifyError as exc:
-            rows.append({"name": "Titres likés", "status": f"échec — {exc.detail or exc.status}"})
-
-    for key in assignments[track["id"]]:
-        name = config.display_name(key)
-        status = "proposé"
-        if add:
-            playlist_id = existing.get(name)
-            if not playlist_id:
-                status = "playlist absente du compte"
-            elif track["id"] in spotify.playlist_track_ids(playlist_id):
-                status = "déjà présent"
-            else:
-                spotify.add_tracks(playlist_id, [track["uri"]])
-                status = "ajouté"
-        rows.append({"name": name, "status": status})
-    return [{"track": track, "rows": rows}]
 
 
 app = create_app()
