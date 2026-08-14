@@ -1,0 +1,50 @@
+[Unit]
+Description=spotify-sort — interface web
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=spotify-sort
+Group=spotify-sort
+WorkingDirectory=/opt/spotify-sort
+
+# Secrets hors de l'unité : `systemctl show` expose les Environment= à tous.
+EnvironmentFile=/etc/spotify-sort.env
+
+# BIND vient de l'EnvironmentFile : 127.0.0.1:8000 derrière un proxy,
+# 0.0.0.0:8000 pour une exposition directe.
+ExecStart=/opt/spotify-sort/.venv/bin/gunicorn \
+    --workers 1 \
+    --bind ${BIND} \
+    --timeout 0 \
+    --access-logfile - \
+    webapp:app
+
+Restart=on-failure
+RestartSec=5s
+
+# --- Durcissement ------------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+# AF_UNIX et AF_NETLINK sont nécessaires : systemd-resolved passe par une socket
+# Unix et getaddrinfo par netlink. Sans eux, plus aucune résolution DNS.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+# Seuls chemins inscriptibles : exports et secrets, tous deux dans le projet.
+ReadWritePaths=/opt/spotify-sort/out /opt/spotify-sort/secrets
+
+# ProtectHome=true masque /home entièrement. Si tu installes le projet sous
+# /home/... au lieu de /opt, le service ne pourra pas le lire : soit tu le
+# déplaces vers /opt, soit tu passes ProtectHome=false.
+
+[Install]
+WantedBy=multi-user.target

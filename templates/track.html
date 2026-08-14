@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Titre à l'unité — spotify-sort{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>Classer un titre</h2>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="link">Lien Spotify</label>
+    <input id="link" name="link" placeholder="https://open.spotify.com/track/…"
+           required autofocus>
+    <p>
+      <label class="inline">
+        <input type="checkbox" name="add" value="1">
+        Ajouter réellement aux playlists existantes
+      </label>
+    </p>
+    <button {{ 'disabled' if not spotify_ready }}>Classer</button>
+  </form>
+  <p class="muted">Accepte un lien <code>open.spotify.com</code>, une URI
+    <code>spotify:track:…</code> ou un ID brut. Sans la case cochée, rien n'est modifié.</p>
+</div>
+
+{% for entry in results or [] %}
+<div class="card">
+  <h3>{{ entry.track.title }} <span class="muted">— {{ entry.track.artists|join(', ') }}</span></h3>
+  <table>
+    {% for row in entry.rows %}
+      <tr>
+        <td>{{ row.name }}</td>
+        <td class="muted">{{ row.status }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endfor %}
+
+{% endblock %}

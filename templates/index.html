@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <h2>État</h2>
+  <ul class="status">
+    <li>{{ '✓' if spotify_ready else '✗' }} Compte Spotify
+      {% if spotify_ready %}connecté{% else %}non connecté{% endif %}
+      {% if spotify_ready %}
+        <form method="post" action="{{ url_for('spotify_logout') }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="link">oublier le token</button>
+        </form>
+      {% else %}
+        <a class="button small" href="{{ url_for('spotify_login') }}">Connecter</a>
+      {% endif %}
+    </li>
+    <li>{{ '✓' if anthropic_ready else '✗' }} Clé API Claude
+      {% if not anthropic_ready %}
+        <span class="muted">— export ANTHROPIC_API_KEY, sinon le classement échoue</span>
+      {% endif %}
+    </li>
+    <li>{{ '✓' if has_liked else '·' }} Titres likés en cache : {{ liked_count }}</li>
+    <li>{{ '✓' if document else '·' }} Classement :
+      {% if document %}{{ document.track_count }} titres, {{ document.playlists|length }} playlists
+      {% else %}aucun{% endif %}
+    </li>
+    <li>{{ '✓' if references else '·' }} Références :
+      {% if references %}
+        {% for key, items in references.items() %}<code>{{ key }}</code> ({{ items|length }}){% if not loop.last %}, {% endif %}{% endfor %}
+      {% else %}aucune{% endif %}
+    </li>
+  </ul>
+  <p class="muted">Redirect URI envoyé à Spotify : <code>{{ redirect_uri }}</code><br>
+    Cette URL exacte doit figurer dans les Redirect URIs de ton app Spotify —
+    la moindre différence donne <code>redirect_uri: Not matching configuration</code>.
+    {% if not base_url %}<br><strong>BASE_URL non défini</strong> : cette valeur est
+    déduite de la requête et changera selon l'adresse utilisée.{% endif %}
+    {% if not redirect_uri.startswith('https://') and '127.0.0.1' not in redirect_uri %}
+    <br><strong>Spotify refusera cette URL</strong> : seul le HTTPS est accepté,
+    à l'exception de <code>127.0.0.1</code>.{% endif %}</p>
+</div>
+
+<div class="card">
+  <h2>Actions</h2>
+  <div class="actions">
+    <form method="post" action="{{ url_for('run', action='fetch') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button {{ 'disabled' if not spotify_ready or running_job }}>1. Récupérer les likés</button>
+    </form>
+
+    <form method="post" action="{{ url_for('run', action='reference') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button {{ 'disabled' if not spotify_ready or running_job }}>Relire les références</button>
+    </form>
+
+    <form method="post" action="{{ url_for('run', action='sort') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="number" name="limit" min="1" placeholder="limite (test)" class="tiny">
+      <button {{ 'disabled' if not spotify_ready or running_job }}>2. Classer</button>
+    </form>
+
+    <form method="post" action="{{ url_for('run', action='sync-likes') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="secondary" {{ 'disabled' if not spotify_ready or running_job }}>Rattraper les likes</button>
+    </form>
+
+    <form method="post" action="{{ url_for('run', action='doctor') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="secondary" {{ 'disabled' if running_job }}>Diagnostic</button>
+    </form>
+  </div>
+  <p class="muted">« Rattraper les likes » parcourt tes playlists et ajoute aux
+    Titres likés tout morceau qui n'y figure pas encore.</p>
+  <p class="muted">Le classement n'écrit que des fichiers. Rien n'est créé sur ton
+    compte tant que tu ne lances pas l'import depuis la page Résultat.</p>
+</div>
+
+{% if document %}
+<div class="card">
+  <h2>Dernier classement</h2>
+  <table>
+    <tr><th>Playlist</th><th class="num">Titres</th></tr>
+    {% for playlist in document.playlists %}
+      <tr><td>{{ playlist.name }}</td><td class="num">{{ playlist.track_ids|length }}</td></tr>
+    {% endfor %}
+  </table>
+  <p><a class="button" href="{{ url_for('result') }}">Voir et importer</a></p>
+</div>
+{% endif %}
+
+{% endblock %}

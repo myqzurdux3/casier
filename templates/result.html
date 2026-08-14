@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Résultat — spotify-sort{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h2>{{ document.track_count }} titres → {{ document.playlists|length }} playlists</h2>
+
+  <form method="post" action="{{ url_for('run', action='import') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p class="muted">Coche les playlists à créer sur ton compte. Celles dont le nom
+      existe déjà sont ignorées — renomme-les sur Spotify pour les régénérer.</p>
+    <p>
+      <label class="inline"><input type="checkbox" name="public" value="1"> Créer en public</label>
+      <button {{ 'disabled' if not spotify_ready or running_job }}>Importer la sélection</button>
+      <button type="button" class="secondary" onclick="toggleAll(this)">Tout cocher</button>
+    </p>
+
+    {% for playlist in document.playlists %}
+      <details id="{{ playlist.key }}">
+        <summary>
+          <label class="inline">
+            <input type="checkbox" name="keys" value="{{ playlist.key }}" checked>
+            <strong>{{ playlist.name }}</strong>
+            <span class="muted">{{ playlist.track_ids|length }} titres</span>
+          </label>
+        </summary>
+        <table>
+          {% for track_id in playlist.track_ids %}
+            {% set track = document.tracks.get(track_id) %}
+            {% if track %}
+            <tr>
+              <td>{{ track.title }}</td>
+              <td class="muted">{{ track.artists|join(', ') }}</td>
+              <td class="muted">{{ track.release_date[:4] }}</td>
+              <td class="num">
+                <button form="rm-{{ playlist.key }}-{{ track_id }}" class="link danger"
+                        title="Retirer de cette playlist">retirer</button>
+              </td>
+            </tr>
+            {% endif %}
+          {% endfor %}
+        </table>
+      </details>
+    {% endfor %}
+  </form>
+
+  {# Formulaires de retrait sortis du formulaire d'import : pas d'imbrication. #}
+  {% for playlist in document.playlists %}
+    {% for track_id in playlist.track_ids %}
+      <form id="rm-{{ playlist.key }}-{{ track_id }}" method="post"
+            action="{{ url_for('result_remove') }}" class="hidden">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="key" value="{{ playlist.key }}">
+        <input type="hidden" name="track_id" value="{{ track_id }}">
+      </form>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<script>
+function toggleAll(button) {
+  const boxes = document.querySelectorAll('input[name="keys"]');
+  const check = button.textContent.trim() === 'Tout cocher';
+  boxes.forEach(box => { box.checked = check; });
+  button.textContent = check ? 'Tout décocher' : 'Tout cocher';
+}
+</script>
+{% endblock %}

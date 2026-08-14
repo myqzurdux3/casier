@@ -1,0 +1,16 @@
+# Secrets — token Spotify, clé de session, jetons d'API, certificats.
+secrets/
+
+# Données produites par l'outil.
+out/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node / Expo
+node_modules/
+.expo/
+*.apk

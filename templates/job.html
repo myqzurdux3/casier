@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ job.name }} — spotify-sort{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>{{ job.name }} <span id="status" class="badge {{ job.status }}">{{ job.status }}</span></h2>
+  <pre id="log" class="log"></pre>
+  <p id="done" class="hidden">
+    <a class="button" href="{{ url_for('result') }}">Voir le résultat</a>
+    <a class="button secondary" href="{{ url_for('index') }}">Tableau de bord</a>
+  </p>
+</div>
+
+<script>
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+const doneEl = document.getElementById('done');
+let since = 0;
+
+async function poll() {
+  const response = await fetch(`{{ url_for('job_api', job_id=job.id) }}?since=${since}`);
+  if (!response.ok) { statusEl.textContent = 'injoignable'; return; }
+  const data = await response.json();
+  if (data.lines.length) {
+    const atBottom = logEl.scrollHeight - logEl.scrollTop <= logEl.clientHeight + 40;
+    logEl.textContent += data.lines.join('\n') + '\n';
+    if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+  }
+  since = data.next;
+  statusEl.textContent = data.status;
+  statusEl.className = 'badge ' + data.status;
+  if (data.status === 'running') { setTimeout(poll, 1000); }
+  else { doneEl.classList.remove('hidden'); }
+}
+poll();
+</script>
+{% endblock %}

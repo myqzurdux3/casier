@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Connexion — spotify-sort{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>spotify-sort</h1>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="password">Mot de passe</label>
+    <input id="password" name="password" type="password" autocomplete="current-password"
+           required autofocus>
+    <button type="submit">Se connecter</button>
+  </form>
+</div>
+{% endblock %}
