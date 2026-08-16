@@ -26,12 +26,30 @@ Environment=HOME=/var/lib/spotify-sort
 # produits par deploy/make-certs.sh ; l'app Android n'accepte que cette
 # autorité pour cet hôte. Pour un déploiement derrière un proxy qui termine le
 # TLS, retirer les deux lignes --certfile/--keyfile et mettre TRUST_PROXY=1.
+#
+# --workers 1 est obligatoire : les jobs vivent en mémoire dans le processus.
+#
+# gthread et non le worker sync par défaut. Le worker sync traite une connexion
+# à la fois : un client qui ouvre la connexion puis n'envoie rien la bloque, et
+# tout le reste s'empile dans le backlog d'accept. Exposé à Internet, ça arrive
+# tout seul — les scanners (Censys et consorts) le font plusieurs fois par jour.
+# Avec gthread, une connexion en carafe coûte un thread sur 16.
+#
+# --timeout 300 et non 0. À 0, l'arbitre ne tue jamais un worker figé, donc rien
+# ne rattrape le cas ci-dessus. 300 s est très au-dessus de la plus longue
+# requête synchrone (la classification d'un titre par Claude, ~60 s au pire) ;
+# les tâches longues, elles, tournent dans un thread de fond et rendent la main
+# tout de suite, donc elles ne comptent pas dans ce délai.
 ExecStart=/opt/spotify-sort/.venv/bin/gunicorn \
     --workers 1 \
+    --worker-class gthread \
+    --threads 16 \
     --bind ${BIND} \
     --certfile /opt/spotify-sort/secrets/server.crt \
     --keyfile /opt/spotify-sort/secrets/server.key \
-    --timeout 0 \
+    --timeout 300 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
     --access-logfile - \
     webapp:app
 
