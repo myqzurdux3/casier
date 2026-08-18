@@ -7,7 +7,7 @@ import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-na
 import { ErrorBanner } from '@/components/Feedback';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { styles } from '@/lib/theme';
+import { colors, styles } from '@/lib/theme';
 
 export default function LoginScreen() {
   const { baseUrl: known, signIn } = useAuth();
@@ -56,7 +56,7 @@ export default function LoginScreen() {
           autoCorrect={false}
           keyboardType="url"
           placeholder="https://192.0.2.10:8000"
-          placeholderTextColor="#6b6b70"
+          placeholderTextColor={colors.faint}
         />
 
         <Text style={styles.heading}>Mot de passe</Text>

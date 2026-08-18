@@ -57,7 +57,7 @@ export default function ResultScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor="#fff" />}
+      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />}
     >
       {noResult ? (
         <Empty>Aucun classement enregistré. Lance un tri depuis le tableau de bord.</Empty>

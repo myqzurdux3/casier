@@ -96,7 +96,7 @@ export default function SettingsScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor="#fff" />}
+      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />}
     >
       <ErrorBanner error={error} onRetry={refresh} />
 
@@ -140,7 +140,7 @@ export default function SettingsScreen() {
           style={styles.input}
           defaultValue={settings.playlist_prefix}
           placeholder="ex. « 🎵 »"
-          placeholderTextColor="#6b6b70"
+          placeholderTextColor={colors.faint}
           onEndEditing={(event) => patch({ playlist_prefix: event.nativeEvent.text })}
         />
 

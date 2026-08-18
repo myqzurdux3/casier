@@ -12,9 +12,9 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.card },
+        headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.text,
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
+        tabBarStyle: { backgroundColor: colors.chrome, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
         sceneStyle: { backgroundColor: colors.bg },

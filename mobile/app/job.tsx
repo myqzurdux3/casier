@@ -12,7 +12,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { ErrorBanner, Loading } from '@/components/Feedback';
 import * as api from '@/lib/api';
-import { bannerStyle, styles } from '@/lib/theme';
+import { bannerStyle, colors, styles } from '@/lib/theme';
 
 const POLL_MS = 1500;
 
@@ -74,8 +74,8 @@ export default function JobScreen() {
             <Text
               style={[
                 styles.muted,
-                job.status === 'error' && { color: '#ff453a' },
-                job.status === 'done' && { color: '#30d158' },
+                job.status === 'error' && { color: colors.error },
+                job.status === 'done' && { color: colors.ok },
               ]}
             >
               {{ running: 'en cours…', done: 'terminé', error: 'échec' }[job.status]}

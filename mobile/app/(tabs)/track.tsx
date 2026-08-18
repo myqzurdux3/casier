@@ -73,7 +73,7 @@ export default function TrackScreen() {
           value={link}
           onChangeText={setLink}
           placeholder="https://open.spotify.com/track/…"
-          placeholderTextColor="#6b6b70"
+          placeholderTextColor={colors.faint}
           autoCapitalize="none"
           autoCorrect={false}
         />

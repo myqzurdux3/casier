@@ -7,7 +7,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { Empty, ErrorBanner, Loading } from '@/components/Feedback';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { bannerStyle, styles } from '@/lib/theme';
+import { bannerStyle, colors, styles } from '@/lib/theme';
 
 const ACTIONS: { action: api.JobAction; label: string; hint: string }[] = [
   { action: 'fetch', label: 'Récupérer les likés', hint: 'Relit la bibliothèque Spotify.' },
@@ -71,7 +71,7 @@ export default function DashboardScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor="#fff" />}
+      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />}
     >
       <ErrorBanner error={error} onRetry={refresh} />
 
@@ -88,10 +88,10 @@ export default function DashboardScreen() {
                 ? `${status.playlist_count} playlists calculées`
                 : 'Aucun classement enregistré'}
             </Text>
-            <Text style={[styles.text, { color: status.spotify_ready ? '#30d158' : '#ffd60a' }]}>
+            <Text style={[styles.text, { color: status.spotify_ready ? colors.ok : colors.warn }]}>
               {status.spotify_ready ? '✓ Compte Spotify lié' : '✗ Compte Spotify non lié'}
             </Text>
-            <Text style={[styles.text, { color: status.anthropic_ready ? '#30d158' : '#ffd60a' }]}>
+            <Text style={[styles.text, { color: status.anthropic_ready ? colors.ok : colors.warn }]}>
               {status.anthropic_ready ? '✓ Clé Claude présente' : '✗ Clé Claude absente'}
             </Text>
           </View>
@@ -107,7 +107,7 @@ export default function DashboardScreen() {
 
           {status.job && (
             <Pressable
-              style={[styles.card, { borderColor: '#1db954' }]}
+              style={[styles.card, { borderColor: colors.accent }]}
               onPress={() => router.push({ pathname: '/job', params: { id: status.job!.id } })}
             >
               <Text style={styles.heading}>« {status.job.name} » en cours</Text>
