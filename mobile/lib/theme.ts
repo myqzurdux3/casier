@@ -92,6 +92,29 @@ export const styles = StyleSheet.create({
   },
   buttonGhostText: { color: colors.text, fontSize: 15, fontWeight: '600' },
   disabled: { opacity: 0.4 },
+  // Ligne de liste : 44 points de haut au minimum, la plus petite cible
+  // tactile confortable recommandée par Android.
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 44,
+    paddingVertical: 10,
+  },
+  // Puce d'état. Rectangulaire et non une pastille : c'est la forme du carré
+  // du logo, reprise partout.
+  chip: {
+    borderRadius: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontFamily: 'monospace',
+    fontSize: 10.5,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   // Marge horizontale portée par le bandeau lui-même : `content` n'en met plus,
   // et un bandeau posé directement dans l'écran toucherait sinon les bords.
