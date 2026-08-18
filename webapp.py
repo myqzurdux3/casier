@@ -35,7 +35,7 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import spotify_sort
-from spotify_sort import auth, config, jobs, service, throttle
+from spotify_sort import auth, colors, config, jobs, service, throttle
 from spotify_sort.service import LIKED, PLAYLISTS, REFERENCES
 
 # Le serveur n'a pas de navigateur : la CLI ne doit pas tenter d'en ouvrir un.
@@ -95,6 +95,10 @@ def create_app() -> Flask:
     # limite de tentatives de connexion.
     if os.environ.get("TRUST_PROXY") == "1":
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Le panel et l'app doivent donner la même teinte au même casier : les deux
+    # dérivent la couleur de la clé de catégorie, jamais du nom affiché.
+    app.jinja_env.filters["category_color"] = colors.category_color
 
     _warn_about_exposure(secure)
     _warn_about_oauth()
