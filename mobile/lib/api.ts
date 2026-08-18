@@ -69,6 +69,9 @@ export interface Status {
 }
 
 export interface TrackRow {
+  /** Clé du casier, d'où vient sa teinte. `null` pour « Titres likés », qui
+   *  n'est pas un casier. */
+  key: string | null;
   name: string;
   status: string;
 }

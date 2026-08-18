@@ -225,11 +225,13 @@ def classify_one(link: str, add: bool) -> dict:
         try:
             liked = ensure_liked(spotify, [track["id"]])
             rows.append(
-                {"name": "Titres likés", "status": "ajouté" if liked else "déjà présent"}
+                {"key": None, "name": "Titres likés",
+                 "status": "ajouté" if liked else "déjà présent"}
             )
         except SpotifyError as exc:
             rows.append(
-                {"name": "Titres likés", "status": f"échec — {exc.detail or exc.status}"}
+                {"key": None, "name": "Titres likés",
+                 "status": f"échec — {exc.detail or exc.status}"}
             )
 
     for key in assignments[track["id"]]:
@@ -244,7 +246,12 @@ def classify_one(link: str, add: bool) -> dict:
             else:
                 spotify.add_tracks(playlist_id, [track["uri"]])
                 status_text = "ajouté"
-        rows.append({"name": name, "status": status_text})
+        # `key` en plus du nom affiché : c'est la clé, et elle seule, qui
+        # détermine la teinte du casier — le nom peut être renommé. Champ
+        # ajouté, aucun champ existant ne bouge : les clients qui l'ignorent
+        # continuent de fonctionner. `None` pour « Titres likés », qui n'est
+        # pas un casier et n'a donc pas de couleur.
+        rows.append({"key": key, "name": name, "status": status_text})
 
     return {"track": track, "rows": rows}
 

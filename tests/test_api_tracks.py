@@ -264,3 +264,31 @@ def test_ecriture_partielle_preserve_le_reste(client, headers):
     assert apres["categories"] == avant["categories"]
 
     client.put("/api/v1/settings", headers=headers, json={"playlist_prefix": ""})
+
+
+def test_chaque_ligne_porte_la_cle_du_casier(client, headers, fake_spotify, sans_claude):
+    """La teinte d'un casier vient de sa clé, jamais du nom affiché.
+
+    Le nom porte le préfixe de playlist et peut être renommé dans les réglages ;
+    la clé, elle, est stable. Sans elle, l'app ne peut pas colorer la ligne.
+    """
+    fake_spotify.playlists = {"Chill": "pl-chill"}
+    response = client.post(
+        "/api/v1/tracks/classify", headers=headers, json={"link": LIEN, "add": True}
+    )
+    assert response.status_code == 200
+    rows = response.get_json()["rows"]
+
+    # « Titres likés » n'est pas un casier : pas de clé, donc pas de couleur.
+    likes = next(r for r in rows if r["name"] == "Titres likés")
+    assert likes["key"] is None
+
+    casiers = [r for r in rows if r["key"] is not None]
+    assert [r["key"] for r in casiers] == ["chill"]
+
+
+def test_la_cle_est_presente_meme_sans_ajout(client, headers, fake_spotify, sans_claude):
+    response = client.post(
+        "/api/v1/tracks/classify", headers=headers, json={"link": LIEN, "add": False}
+    )
+    assert [r["key"] for r in response.get_json()["rows"]] == ["chill"]
