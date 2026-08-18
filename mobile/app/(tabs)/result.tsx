@@ -1,16 +1,45 @@
-/** Playlists calculées : parcours, détail, retrait d'un titre mal classé. */
+/** Tri : casiers calculés, parcours, retrait d'un titre mal classé. */
 
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { Empty, ErrorBanner, Loading } from '@/components/Feedback';
+import { Swatch } from '@/components/Swatch';
 import * as api from '@/lib/api';
+import { categoryColor } from '@/lib/categoryColor';
 import { colors, styles } from '@/lib/theme';
+
+/** Au-delà, la rangée mangerait la largeur du titre. */
+const MAX_CARRES = 4;
+
+/**
+ * Rangée des autres casiers d'un titre.
+ *
+ * Un titre appartient souvent à quatre ou cinq casiers — mood, genre,
+ * décennie. Les montrer sur sa ligne évite d'avoir à parcourir tous les
+ * casiers pour reconstituer son classement.
+ */
+function AutresCasiers({ keys }: { keys: string[] }) {
+  if (keys.length === 0) return null;
+  const montres = keys.slice(0, MAX_CARRES);
+  const reste = keys.length - montres.length;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+      {montres.map((key) => (
+        <Swatch key={key} keyName={key} size={8} />
+      ))}
+      {reste > 0 && (
+        <Text style={[styles.label, { color: colors.faint, letterSpacing: 0 }]}>+{reste}</Text>
+      )}
+    </View>
+  );
+}
 
 export default function ResultScreen() {
   const [document, setDocument] = useState<api.ResultDocument | null>(null);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [filtre, setFiltre] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +61,17 @@ export default function ResultScreen() {
     }, [refresh])
   );
 
+  /** Titre -> casiers qui le contiennent, pour la rangée de carrés. */
+  const casiersParTitre = useMemo(() => {
+    const table: Record<string, string[]> = {};
+    for (const playlist of document?.playlists ?? []) {
+      for (const trackId of playlist.track_ids) {
+        (table[trackId] ??= []).push(playlist.key);
+      }
+    }
+    return table;
+  }, [document]);
+
   function confirmRemove(key: string, trackId: string, label: string) {
     Alert.alert('Retirer ce titre ?', label, [
       { text: 'Annuler', style: 'cancel' },
@@ -52,32 +92,76 @@ export default function ResultScreen() {
   if (loading) return <Loading />;
 
   const noResult = error instanceof api.ApiError && error.code === 'no_result';
+  const visibles = document
+    ? document.playlists.filter((p) => filtre === null || p.key === filtre)
+    : [];
 
   return (
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />}
+      refreshControl={
+        <RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />
+      }
     >
       {noResult ? (
-        <Empty>Aucun classement enregistré. Lance un tri depuis le tableau de bord.</Empty>
+        <Empty>Aucun classement enregistré. Lance un tri depuis l'onglet Casier.</Empty>
       ) : (
         <ErrorBanner error={error} onRetry={refresh} />
       )}
 
       {document && (
         <>
-          <View style={styles.card}>
-            <Text style={styles.title}>
-              {document.playlists.length} playlists · {document.track_count} titres
-            </Text>
+          <View style={[styles.card, { borderTopWidth: 0 }]}>
+            <View style={styles.row}>
+              <Text style={styles.title}>Tri</Text>
+              <Text style={[styles.mono, { color: colors.muted }]}>
+                {document.playlists.length} casiers · {document.track_count} titres
+              </Text>
+            </View>
             <Text style={styles.muted}>
-              Le retrait ne touche que le classement local. Relance un import pour
-              répercuter sur Spotify.
+              Appui long sur un titre pour le retirer. Le retrait ne touche que le
+              classement local — relance un import pour le répercuter sur Spotify.
             </Text>
           </View>
 
-          {document.playlists.map((playlist) => {
+          {/* Puces de filtre : la puce active prend la teinte de son casier. */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 8 }}
+            style={{ borderTopWidth: 1, borderTopColor: colors.border }}
+          >
+            {document.playlists.map((playlist) => {
+              const actif = filtre === playlist.key;
+              const teinte = categoryColor(playlist.key);
+              return (
+                <Pressable
+                  key={playlist.key}
+                  onPress={() => setFiltre(actif ? null : playlist.key)}
+                  style={[
+                    styles.chip,
+                    {
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      borderColor: actif ? teinte : colors.border,
+                    },
+                  ]}
+                >
+                  <Swatch keyName={playlist.key} size={8} />
+                  <Text style={[styles.chipText, { color: actif ? teinte : colors.muted }]}>
+                    {playlist.name}
+                  </Text>
+                  <Text style={[styles.chipText, { color: colors.faint }]}>
+                    {playlist.track_ids.length}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {visibles.map((playlist) => {
             const open = openKey === playlist.key;
             return (
               <View key={playlist.key} style={styles.card}>
@@ -85,28 +169,62 @@ export default function ResultScreen() {
                   style={styles.row}
                   onPress={() => setOpenKey(open ? null : playlist.key)}
                 >
-                  <Text style={[styles.heading, { flex: 1 }]}>{playlist.name}</Text>
-                  <Text style={styles.muted}>
-                    {playlist.track_ids.length} {open ? '▾' : '▸'}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <Swatch keyName={playlist.key} />
+                    <Text
+                      style={[
+                        styles.heading,
+                        {
+                          borderBottomWidth: 3,
+                          borderBottomColor: categoryColor(playlist.key),
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {playlist.name}
+                    </Text>
+                  </View>
+                  <Text style={[styles.label, { color: colors.muted }]}>
+                    {playlist.track_ids.length} titres {open ? '▾' : '▸'}
                   </Text>
                 </Pressable>
 
                 {open &&
-                  playlist.track_ids.map((trackId) => {
+                  playlist.track_ids.map((trackId, index) => {
                     const track = document.tracks?.[trackId];
-                    const label = track
-                      ? `${track.title} — ${track.artists.join(', ')}`
-                      : trackId;
+                    const titre = track?.title ?? trackId;
+                    const artistes = track?.artists.join(', ') ?? '';
+                    const autres = (casiersParTitre[trackId] ?? []).filter(
+                      (key) => key !== playlist.key
+                    );
                     return (
                       <Pressable
                         key={trackId}
-                        style={styles.row}
-                        onLongPress={() => confirmRemove(playlist.key, trackId, label)}
+                        style={styles.listRow}
+                        onLongPress={() =>
+                          confirmRemove(
+                            playlist.key,
+                            trackId,
+                            artistes ? `${titre} — ${artistes}` : titre
+                          )
+                        }
                       >
-                        <Text style={[styles.text, { flex: 1 }]} numberOfLines={2}>
-                          {label}
+                        <Text
+                          style={[styles.mono, { color: colors.faint, width: 20 }]}
+                        >
+                          {String(index + 1).padStart(2, '0')}
                         </Text>
-                        <Text style={{ color: colors.muted, fontSize: 12 }}>appui long</Text>
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text style={styles.text} numberOfLines={1}>
+                            {titre}
+                          </Text>
+                          {artistes ? (
+                            <Text style={styles.muted} numberOfLines={1}>
+                              {artistes}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <AutresCasiers keys={autres} />
                       </Pressable>
                     );
                   })}

@@ -5,9 +5,9 @@ import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { Empty, ErrorBanner, Loading } from '@/components/Feedback';
+import { Swatch } from '@/components/Swatch';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { categoryColor } from '@/lib/categoryColor';
 import { bannerStyle, colors, styles } from '@/lib/theme';
 
 /**
@@ -43,20 +43,6 @@ const SECONDAIRES: { action: api.JobAction; label: string; hint: string }[] = [
   { action: 'reference', label: 'Playlists de référence', hint: 'Relit tes exemples.' },
   { action: 'doctor', label: 'Diagnostic', hint: 'Vérifie scopes et endpoints.' },
 ];
-
-/** Carré de couleur d'un casier. */
-function Swatch({ keyName, size = 12 }: { keyName: string; size?: number }) {
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: categoryColor(keyName),
-        flexShrink: 0,
-      }}
-    />
-  );
-}
 
 function Chip({ on, label }: { on: boolean; label: string }) {
   return (
