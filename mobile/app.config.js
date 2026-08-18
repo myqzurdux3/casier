@@ -9,7 +9,7 @@ const PORT = process.env.SPOTIFY_SORT_PORT || '8000';
 
 module.exports = {
   expo: {
-    name: 'spotify-sort',
+    name: 'Casier',
     slug: 'spotify-sort',
     version: '0.5.0',
     orientation: 'portrait',

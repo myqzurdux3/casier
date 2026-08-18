@@ -40,7 +40,7 @@ export default function LoginScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.card}>
-        <Text style={styles.title}>spotify-sort</Text>
+        <Text style={styles.title}>Casier</Text>
         <Text style={styles.muted}>
           Le mot de passe est celui du panel web (WEB_PASSWORD). L'app le change
           une fois contre un jeton, conservé dans le stockage sécurisé du

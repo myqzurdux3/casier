@@ -1,4 +1,4 @@
-# spotify-sort
+# Casier
 
 Récupère tous tes titres likés Spotify, les trie en playlists thématiques
 (mood, genre, décennie, catégories spéciales), exporte le résultat en JSON/CSV,

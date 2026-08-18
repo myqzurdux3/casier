@@ -1,7 +1,7 @@
 /**
  * Titre à l'unité — l'écran qui justifie une app native.
  *
- * Depuis Spotify : « Partager → spotify-sort ». Le lien arrive par l'intention
+ * Depuis Spotify : « Partager → Casier ». Le lien arrive par l'intention
  * Android, l'écran se remplit et lance le classement sans autre geste.
  */
 
@@ -65,7 +65,7 @@ export default function TrackScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Classer un titre</Text>
         <Text style={styles.muted}>
-          Colle un lien, ou partage un titre depuis Spotify vers spotify-sort.
+          Colle un lien, ou partage un titre depuis Spotify vers Casier.
         </Text>
 
         <TextInput

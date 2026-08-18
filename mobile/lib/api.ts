@@ -1,5 +1,5 @@
 /**
- * Client de l'API spotify-sort.
+ * Client de l'API Casier.
  *
  * Seul module qui parle réseau : les écrans appellent des fonctions typées et
  * n'ont ni URL, ni en-tête, ni code HTTP à manipuler. Un `401` invalide la
