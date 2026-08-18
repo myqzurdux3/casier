@@ -25,7 +25,7 @@ module.exports = {
       permissions: ['INTERNET'],
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#121212',
+        backgroundColor: '#1B1D20',
       },
     },
     plugins: [
@@ -34,7 +34,7 @@ module.exports = {
         'expo-splash-screen',
         {
           image: './assets/splash-icon.png',
-          backgroundColor: '#121212',
+          backgroundColor: '#1B1D20',
           imageWidth: 200,
         },
       ],
