@@ -13,13 +13,14 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
 
 import { ErrorBanner, Loading } from '@/components/Feedback';
+import { SquareSwitch } from '@/components/SquareSwitch';
+import { Swatch } from '@/components/Swatch';
 import * as api from '@/lib/api';
 import { colors, styles } from '@/lib/theme';
 
@@ -28,6 +29,11 @@ const GROUPS: Record<string, string> = {
   genres: 'Genres',
   specials: 'Catégories spéciales',
 };
+
+const TOLERANCES = [
+  { value: 'large', label: 'Large' },
+  { value: 'stricte', label: 'Stricte' },
+] as const;
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<api.Settings | null>(null);
@@ -96,46 +102,65 @@ export default function SettingsScreen() {
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />}
+      refreshControl={
+        <RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.text} />
+      }
     >
       <ErrorBanner error={error} onRetry={refresh} />
 
-      <View style={styles.card}>
+      <View style={[styles.card, { borderTopWidth: 0 }]}>
         <Text style={styles.title}>Tolérance</Text>
         <Text style={styles.muted}>
           « Large » remplit davantage les playlists en acceptant les
           correspondances raisonnables. « Stricte » ne retient que l'évident.
         </Text>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          {(['large', 'stricte'] as const).map((value) => (
-            <Pressable
-              key={value}
-              style={[
-                styles.buttonGhost,
-                { flex: 1 },
-                settings.tolerance === value && { borderColor: colors.accent },
-                busy && styles.disabled,
-              ]}
-              disabled={busy}
-              onPress={() => patch({ tolerance: value })}
-            >
-              <Text
+        {/* Un seul cadre coupé en deux, et non deux boutons voisins : les deux
+            moitiés sont exclusives, la forme doit le dire. */}
+        <View
+          style={{
+            flexDirection: 'row',
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 4,
+            overflow: 'hidden',
+          }}
+        >
+          {TOLERANCES.map(({ value, label }) => {
+            const actif = settings.tolerance === value;
+            return (
+              <Pressable
+                key={value}
                 style={[
-                  styles.buttonGhostText,
-                  settings.tolerance === value && { color: colors.accent },
+                  {
+                    flex: 1,
+                    paddingVertical: 13,
+                    alignItems: 'center',
+                    backgroundColor: actif ? colors.accent : 'transparent',
+                  },
+                  busy && styles.disabled,
                 ]}
+                disabled={busy}
+                onPress={() => patch({ tolerance: value })}
               >
-                {value === 'large' ? 'Large' : 'Stricte'}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={{
+                    color: actif ? colors.onAccent : colors.muted,
+                    fontSize: 15,
+                    fontWeight: actif ? '700' : '600',
+                  }}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.title}>Playlists créées</Text>
 
-        <Text style={styles.heading}>Préfixe</Text>
+        <Text style={styles.label}>Préfixe</Text>
         <TextInput
           style={styles.input}
           defaultValue={settings.playlist_prefix}
@@ -144,16 +169,15 @@ export default function SettingsScreen() {
           onEndEditing={(event) => patch({ playlist_prefix: event.nativeEvent.text })}
         />
 
-        <View style={styles.row}>
+        <View style={styles.listRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.text}>Publiques</Text>
             <Text style={styles.muted}>Privées par défaut.</Text>
           </View>
-          <Switch
+          <SquareSwitch
             value={settings.playlist_public}
             disabled={busy}
             onValueChange={(value) => patch({ playlist_public: value })}
-            trackColor={{ true: colors.accent, false: colors.border }}
           />
         </View>
       </View>
@@ -165,30 +189,37 @@ export default function SettingsScreen() {
           <View key={group} style={styles.card}>
             <Pressable style={styles.row} onPress={() => setOpenGroup(open ? null : group)}>
               <Text style={[styles.heading, { flex: 1 }]}>{label}</Text>
-              <Text style={styles.muted}>
+              <Text style={[styles.label, { color: colors.muted }]}>
                 {entries.length} {open ? '▾' : '▸'}
               </Text>
             </Pressable>
+
+            {/* Une seule fois dans l'en-tête : répété sous chaque catégorie,
+                c'était du bruit. */}
+            {open && (
+              <Text style={styles.label}>
+                Appui long pour supprimer · création et descriptions depuis le panel web
+              </Text>
+            )}
 
             {open &&
               entries.map(([key, entry]) => (
                 <Pressable
                   key={key}
-                  style={{ gap: 2, paddingVertical: 6 }}
+                  style={styles.listRow}
                   onLongPress={() => removeCategory(group, key, entry.name)}
                 >
-                  <Text style={styles.text}>{entry.name}</Text>
-                  <Text style={styles.muted}>{entry.description}</Text>
+                  {/* Aligné sur la première ligne de texte et non centré : la
+                      description peut courir sur deux lignes. */}
+                  <View style={{ paddingTop: 4, alignSelf: 'flex-start' }}>
+                    <Swatch keyName={key} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.text}>{entry.name}</Text>
+                    <Text style={styles.muted}>{entry.description}</Text>
+                  </View>
                 </Pressable>
               ))}
-
-            {open && (
-              <Text style={styles.muted}>
-                Appui long sur une catégorie pour la supprimer. La création et la
-                réécriture des descriptions se font depuis le panel web, plus
-                confortable au clavier.
-              </Text>
-            )}
           </View>
         );
       })}
