@@ -20,8 +20,10 @@
         <summary>
           <label class="inline">
             <input type="checkbox" name="keys" value="{{ playlist.key }}" checked>
-            <strong>{{ playlist.name }}</strong>
-            <span class="muted">{{ playlist.track_ids|length }} titres</span>
+            <span class="swatch" style="background: {{ playlist.key | category_color }}"></span>
+            <strong class="casier-nom"
+                    style="color: {{ playlist.key | category_color }}">{{ playlist.name }}</strong>
+            <span class="mono">{{ playlist.track_ids|length }} titres</span>
           </label>
         </summary>
         <table>

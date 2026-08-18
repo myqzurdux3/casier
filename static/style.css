@@ -1,12 +1,18 @@
 :root {
-  --bg: #14161a;
-  --card: #1c1f26;
-  --line: #2b303a;
-  --text: #e6e8ec;
-  --muted: #949aa6;
-  --accent: #1db954;
-  --danger: #e5534b;
-  --warn: #d9a441;
+  --bg: #1B1D20;
+  --card: #23262A;
+  --line: #33373C;
+  --text: #F2F3F4;
+  --muted: #8E959C;
+  --faint: #6E757C;
+  /* « On peut appuyer » : bouton, lien actif, état OK. Les huit teintes de
+     casier viennent de spotify_sort/colors.py et ne disent que l'appartenance,
+     jamais l'action. Les deux vocabulaires ne se croisent pas. */
+  --accent: #D7E63B;
+  --on-accent: #1B1D20;
+  --danger: #F2795E;
+  --warn: #E8A33D;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -29,15 +35,34 @@ nav {
 }
 nav a { color: var(--muted); text-decoration: none; }
 nav a:hover { color: var(--text); }
-nav .brand { color: var(--accent); font-weight: 600; }
+nav .brand { color: var(--text); font-weight: 600; display: inline-flex;
+  align-items: center; gap: 0.5rem; }
+/* Le carré du logo, plutôt qu'un mot coloré : la marque se lit à sa forme. */
+nav .brand::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  flex: none;
+}
 nav .right { margin-left: auto; }
 
 main { max-width: 60rem; margin: 0 auto; padding: 1.4rem; }
 
 .card {
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 1.2rem 0;
+  margin-bottom: 0;
+}
+/* Seuls les blocs de saisie gardent un fond propre : il délimite la zone où
+   l'on écrit, ce qu'un filet seul ne fait pas. */
+.card.form,
+.card.narrow {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 1.2rem 1.4rem;
   margin-bottom: 1.2rem;
 }
@@ -56,7 +81,7 @@ input, select, textarea {
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 4px;
   font: inherit;
 }
 input[type="checkbox"] { width: auto; }
@@ -68,9 +93,9 @@ button, .button {
   padding: 0.5rem 0.9rem;
   margin-top: 0.6rem;
   background: var(--accent);
-  color: #08130c;
+  color: var(--on-accent);
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -106,7 +131,7 @@ details { border-bottom: 1px solid var(--line); padding: 0.4rem 0; }
 summary { cursor: pointer; }
 summary::marker { color: var(--muted); }
 
-fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 0.8rem 0; }
+fieldset { border: 1px solid var(--line); border-radius: 4px; margin: 0.8rem 0; }
 legend { color: var(--muted); padding: 0 0.4rem; }
 
 .muted { color: var(--muted); font-size: 0.9rem; }
@@ -115,7 +140,7 @@ code { background: var(--bg); padding: 0.1rem 0.3rem; border-radius: 4px; font-s
 .log {
   background: #0e1013;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 0.8rem;
   max-height: 26rem;
   overflow: auto;
@@ -124,13 +149,33 @@ code { background: var(--bg); padding: 0.1rem 0.3rem; border-radius: 4px; font-s
   line-height: 1.4;
 }
 
-.flash { padding: 0.6rem 0.9rem; border-radius: 6px; border-left: 3px solid var(--muted); background: var(--card); }
+.flash { padding: 0.6rem 0.9rem; border-radius: 4px; border-left: 3px solid var(--muted); background: var(--card); }
 .flash.ok { border-color: var(--accent); }
 .flash.error { border-color: var(--danger); }
 .flash.warn { border-color: var(--warn); }
 
-.badge { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--line); color: var(--muted); vertical-align: middle; }
-.badge.done { background: var(--accent); color: #08130c; }
+.badge { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 2px; background: var(--line); color: var(--muted); vertical-align: middle; }
+.badge.done { background: var(--accent); color: var(--on-accent); }
 .badge.error { background: var(--danger); color: #fff; }
 
 .hidden { display: none; }
+
+/* Carré de couleur d'un casier — même teinte que dans l'app, calculée par le
+   filtre `category_color`. Angles vifs : c'est la forme du logo. */
+.swatch {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  flex: none;
+  vertical-align: -1px;
+}
+
+/* Nombres et libellés d'état : chasse fixe pour que les colonnes s'alignent. */
+td.num, th.num, .badge, .mono, .log {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.mono { font-size: 0.85rem; color: var(--muted); }
+
+/* Nom de casier souligné de sa teinte, posée en ligne par le gabarit. */
+.casier-nom { border-bottom: 3px solid currentColor; }

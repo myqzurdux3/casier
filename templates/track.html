@@ -2,7 +2,7 @@
 {% block title %}Titre à l'unité — Casier{% endblock %}
 {% block content %}
 
-<div class="card">
+<div class="card form">
   <h2>Classer un titre</h2>
   <form method="post">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
@@ -27,8 +27,14 @@
   <table>
     {% for row in entry.rows %}
       <tr>
-        <td>{{ row.name }}</td>
-        <td class="muted">{{ row.status }}</td>
+        {# `row.key` est nul pour « Titres likés », qui n'est pas un casier. #}
+        <td>
+          {% if row.key %}
+            <span class="swatch" style="background: {{ row.key | category_color }}"></span>
+          {% endif %}
+          {{ row.name }}
+        </td>
+        <td class="mono">{{ row.status }}</td>
       </tr>
     {% endfor %}
   </table>

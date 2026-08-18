@@ -5,7 +5,7 @@
 <form method="post">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">
 
-  <div class="card">
+  <div class="card form">
     <h2>Général</h2>
     <label for="tolerance">Tolérance</label>
     <select id="tolerance" name="tolerance">
@@ -28,7 +28,7 @@
     </label></p>
   </div>
 
-  <div class="card">
+  <div class="card form">
     <h2>Playlists de référence</h2>
     <p class="muted">Une playlist existante de ton compte qui sert d'exemple pour une
       catégorie. Ses titres sont injectés dans le prompt comme référence faisant autorité.</p>
@@ -50,11 +50,14 @@
   </div>
 
   {% for group, entries in settings.categories.items() %}
-  <div class="card">
+  <div class="card form">
     <h2>{{ {'moods': 'Moods', 'genres': 'Genres', 'specials': 'Catégories spéciales'}[group] }}</h2>
     {% for key, spec in entries.items() %}
       <fieldset>
-        <legend><code>{{ key }}</code></legend>
+        <legend>
+          <span class="swatch" style="background: {{ key | category_color }}"></span>
+          <code>{{ key }}</code>
+        </legend>
         <input name="name__{{ group }}__{{ key }}" value="{{ spec.name }}">
         <textarea name="desc__{{ group }}__{{ key }}" rows="3">{{ spec.description }}</textarea>
         <label class="inline danger">
@@ -65,7 +68,7 @@
   </div>
   {% endfor %}
 
-  <div class="card">
+  <div class="card form">
     <h2>Nouvelle catégorie</h2>
     <input name="new_key" placeholder="clé, ex. running">
     <input name="new_name" placeholder="nom affiché, ex. Running">
@@ -78,7 +81,7 @@
       placeholder="Description envoyée au modèle : à quoi reconnaît-on cette catégorie ?"></textarea>
   </div>
 
-  <div class="card">
+  <div class="card form">
     <button>Enregistrer</button>
     <span class="muted">Les décennies et « très vieux » sont calculées par règle,
       pas modifiables ici.</span>

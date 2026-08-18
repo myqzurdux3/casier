@@ -75,3 +75,27 @@ def test_page_erreur_remplace_le_500_muet(app):
     corps = response.get_data(as_text=True)
     assert "Erreur serveur" in corps and "KeyError" in corps
     assert "The server encountered an internal error" not in corps
+
+
+def test_le_resultat_affiche_les_carres_de_couleur(connecte, monkeypatch):
+    """Le filtre `category_color` n'est exercé qu'au rendu.
+
+    Une faute dans le gabarit ne se verrait qu'en production, sur la page
+    ouverte par l'utilisateur — d'où ce rendu réel plutôt qu'un test du filtre.
+    """
+    import webapp
+
+    from spotify_sort.colors import category_color
+
+    document = {
+        "track_count": 1,
+        "playlists": [{"key": "rap-uk", "name": "Rap UK", "track_ids": ["t1"]}],
+        "tracks": {"t1": {"title": "Titre", "artists": ["A"], "release_date": "2019-01-01"}},
+    }
+    # `webapp._load` et non `service.load` : l'alias est figé à l'import du
+    # module, patcher la source ne l'atteindrait pas.
+    monkeypatch.setattr(webapp, "_load", lambda path: document)
+
+    html = connecte.get("/result").get_data(as_text=True)
+    assert 'class="swatch"' in html
+    assert category_color("rap-uk") in html
