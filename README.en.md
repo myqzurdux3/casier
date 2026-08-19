@@ -1,12 +1,29 @@
-# Casier
+<p align="center">
+  <img src="docs/images/logo.png" width="112" alt="">
+</p>
 
-[Français](README.md) · **English**
+<h1 align="center">Casier</h1>
 
-Files your Spotify liked songs into themed playlists — mood, genre, decade — and
-lets Claude do the judging. Command line, web panel and Android app, all on the
-same engine.
+<p align="center">
+  Files your Spotify liked songs into themed playlists,<br>
+  and lets Claude do the judging.
+</p>
+
+<p align="center">
+  <a href="README.md">Français</a> · <b>English</b>
+</p>
+
+<p align="center">
+  <img src="docs/images/app-accueil.png" width="205" alt="Home">
+  <img src="docs/images/app-tri.png" width="205" alt="Sort">
+  <img src="docs/images/app-titre.png" width="205" alt="Single track">
+  <img src="docs/images/app-reglages.png" width="205" alt="Settings">
+</p>
+
+---
 
 A track can belong to several playlists, and no track is left behind.
+Command line, web panel and Android app, all on the same engine.
 
 ```bash
 python main.py fetch    # reads your liked songs
@@ -17,8 +34,6 @@ python main.py import out/playlists.json   # creates the playlists on your accou
 Nothing is created on your account until you run `import`.
 
 > *Casier* is French for a pigeonhole — one of the slots you file things into.
-
----
 
 ## Why Claude rather than the Spotify API
 

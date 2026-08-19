@@ -1,12 +1,29 @@
-# Casier
+<p align="center">
+  <img src="docs/images/logo.png" width="112" alt="">
+</p>
 
-**Français** · [English](README.en.md)
+<h1 align="center">Casier</h1>
 
-Range tes titres likés Spotify dans des playlists thématiques — mood, genre,
-décennie — en confiant le jugement à Claude. Ligne de commande, panel web et
-app Android, sur le même moteur.
+<p align="center">
+  Range tes titres likés Spotify dans des playlists thématiques,<br>
+  en confiant le jugement à Claude.
+</p>
+
+<p align="center">
+  <b>Français</b> · <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
+  <img src="docs/images/app-accueil.png" width="205" alt="Accueil">
+  <img src="docs/images/app-tri.png" width="205" alt="Tri">
+  <img src="docs/images/app-titre.png" width="205" alt="Titre à l'unité">
+  <img src="docs/images/app-reglages.png" width="205" alt="Réglages">
+</p>
+
+---
 
 Un titre peut appartenir à plusieurs playlists, et aucun titre n'est laissé de côté.
+Ligne de commande, panel web et app Android, sur le même moteur.
 
 ```bash
 python main.py fetch    # lit tes titres likés
@@ -15,8 +32,6 @@ python main.py import out/playlists.json   # crée les playlists sur ton compte
 ```
 
 Rien n'est créé sur ton compte tant que tu ne lances pas `import`.
-
----
 
 ## Pourquoi Claude plutôt que l'API Spotify
 
