@@ -90,7 +90,12 @@ def test_job_for_traduit_les_actions():
     for action in service.JOB_ACTIONS:
         nom, fonction, args = service.job_for(action)
         assert callable(fonction), action
-        assert nom == service.JOB_ACTIONS[action]
+        assert nom == service.job_label(action)
+
+
+def test_le_libelle_du_job_suit_la_langue():
+    assert service.job_for("sort", langue="fr")[0] == "Classement"
+    assert service.job_for("sort", langue="en")[0] == "Sorting"
 
 
 def test_job_for_passe_les_parametres():

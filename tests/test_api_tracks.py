@@ -69,7 +69,7 @@ def test_classement_sans_ajout(client, headers, fake_spotify, sans_claude):
     assert response.status_code == 200
     body = response.get_json()
     assert body["track"]["id"] == TRACK_ID
-    assert [r["status"] for r in body["rows"]] == ["proposé"]
+    assert [r["status"] for r in body["rows"]] == ["proposed"]
     # Rien ne doit avoir été écrit sur le compte.
     assert fake_spotify.added == []
     assert fake_spotify.saved == set()
@@ -84,7 +84,7 @@ def test_ajout_like_le_titre(client, headers, fake_spotify, sans_claude):
     assert response.status_code == 200
 
     rows = {r["name"]: r["status"] for r in response.get_json()["rows"]}
-    assert rows["Titres likés"] == "ajouté"
+    assert rows[service.LIKED_SONGS] == "added"
     assert TRACK_ID in fake_spotify.saved
     assert fake_spotify.added == [("pl-chill", [f"spotify:track:{TRACK_ID}"])]
 
@@ -96,7 +96,7 @@ def test_ajout_titre_deja_like(client, headers, fake_spotify, sans_claude):
         "/api/v1/tracks/classify", headers=headers, json={"link": LIEN, "add": True}
     )
     rows = {r["name"]: r["status"] for r in response.get_json()["rows"]}
-    assert rows["Titres likés"] == "déjà présent"
+    assert rows[service.LIKED_SONGS] == "already_present"
 
 
 def test_playlist_absente_du_compte(client, headers, fake_spotify, sans_claude):
@@ -104,7 +104,7 @@ def test_playlist_absente_du_compte(client, headers, fake_spotify, sans_claude):
         "/api/v1/tracks/classify", headers=headers, json={"link": LIEN, "add": True}
     )
     rows = {r["name"]: r["status"] for r in response.get_json()["rows"]}
-    assert rows["Chill"] == "playlist absente du compte"
+    assert rows["Chill"] == "playlist_missing"
     assert fake_spotify.added == []
 
 
@@ -122,8 +122,8 @@ def test_echec_du_like_nempeche_pas_le_reste(client, headers, fake_spotify, sans
     )
     assert response.status_code == 200
     rows = {r["name"]: r["status"] for r in response.get_json()["rows"]}
-    assert "échec" in rows["Titres likés"]
-    assert rows["Chill"] == "ajouté"
+    assert rows[service.LIKED_SONGS] == "failed"
+    assert rows["Chill"] == "added"
 
 
 def test_spotify_en_panne_donne_502(client, headers, fake_spotify, sans_claude):
@@ -280,7 +280,7 @@ def test_chaque_ligne_porte_la_cle_du_casier(client, headers, fake_spotify, sans
     rows = response.get_json()["rows"]
 
     # « Titres likés » n'est pas un casier : pas de clé, donc pas de couleur.
-    likes = next(r for r in rows if r["name"] == "Titres likés")
+    likes = next(r for r in rows if r["name"] == service.LIKED_SONGS)
     assert likes["key"] is None
 
     casiers = [r for r in rows if r["key"] is not None]

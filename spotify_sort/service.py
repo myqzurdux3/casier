@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 
-from . import auth, classify, config, export
+from . import auth, classify, config, export, i18n
 from . import importer as import_module
 from .spotify import Spotify, SpotifyError, ensure_liked, parse_track_id
 
@@ -18,15 +18,19 @@ LIKED = OUT / "liked.json"
 PLAYLISTS = OUT / "playlists.json"
 REFERENCES = OUT / "references.json"
 
-# Actions déclenchables en arrière-plan : clé -> libellé affiché.
-JOB_ACTIONS = {
-    "fetch": "Récupération des likés",
-    "reference": "Playlists de référence",
-    "sort": "Classement",
-    "import": "Import vers Spotify",
-    "sync-likes": "Rattrapage des likes",
-    "doctor": "Diagnostic",
-}
+# Actions déclenchables en arrière-plan. Les libellés vivent dans i18n.py :
+# ici on ne garde que les clés, pour que le module reste indépendant de la
+# langue du lecteur.
+JOB_ACTIONS = ("fetch", "reference", "sort", "import", "sync-likes", "doctor")
+
+
+def job_label(action: str, langue: str = i18n.DEFAUT) -> str:
+    return i18n.t(f"tache.{action}", langue)
+
+
+def job_labels(langue: str = i18n.DEFAUT) -> dict[str, str]:
+    """Action -> libellé, pour peupler un menu côté client."""
+    return {action: job_label(action, langue) for action in JOB_ACTIONS}
 
 # Seul `doctor` a un sens sans compte Spotify connecté : il sert justement à
 # diagnostiquer pourquoi la connexion ne va pas.
@@ -185,23 +189,44 @@ def task_doctor():
     return True
 
 
-def job_for(action: str, params: dict | None = None):
+def job_for(action: str, params: dict | None = None, langue: str = i18n.DEFAUT):
     """Callable et libellé du job correspondant à une action.
 
     Centralise la traduction action -> fonction pour que les deux façades ne
     puissent pas diverger sur les noms ou les arguments.
+
+    Le libellé est figé à la création du job, dans la langue de qui le lance :
+    un job démarré depuis l'app en anglais gardera son nom anglais, y compris
+    vu du panel. Le stocker traduit plutôt que sous forme de clé garde `jobs.py`
+    ignorant de toute question de langue.
     """
     params = params or {}
     if action not in JOB_ACTIONS:
         raise ValueError(f"Action inconnue : {action}")
+    libelle = job_label(action, langue)
     if action == "sort":
-        return JOB_ACTIONS[action], task_sort, (params.get("limit"),)
+        return libelle, task_sort, (params.get("limit"),)
     if action == "import":
-        return JOB_ACTIONS[action], task_import, (params.get("only"), params.get("public"))
-    return JOB_ACTIONS[action], globals()[f"task_{action.replace('-', '_')}"], ()
+        return libelle, task_import, (params.get("only"), params.get("public"))
+    return libelle, globals()[f"task_{action.replace('-', '_')}"], ()
 
 
 # --- Actions immédiates -----------------------------------------------------
+
+
+# Clé de traduction du nom des Titres likés. Ce n'est pas une playlist du
+# compte : c'est la bibliothèque elle-même, donc un libellé d'interface.
+LIKED_SONGS = "@liked_songs"
+
+
+def _row(key: str | None, name: str, verdict: str, detail: str | None = None) -> dict:
+    """Ligne de verdict.
+
+    `status` est une clé stable (`added`, `proposed`…) et non une phrase : les
+    deux façades la traduisent chacune dans la langue de leur lecteur, et l'app
+    le fait sans aller-retour réseau.
+    """
+    return {"key": key, "name": name, "status": verdict, "detail": detail}
 
 
 def classify_one(link: str, add: bool) -> dict:
@@ -221,37 +246,32 @@ def classify_one(link: str, add: bool) -> dict:
     existing = spotify.existing_playlists() if add else {}
     rows = []
 
+    # « Titres likés » n'est pas un casier : `key` reste nul, et son nom est le
+    # seul libellé d'interface produit ici — d'où la clé de traduction à part.
     if add:
         try:
             liked = ensure_liked(spotify, [track["id"]])
-            rows.append(
-                {"key": None, "name": "Titres likés",
-                 "status": "ajouté" if liked else "déjà présent"}
-            )
+            rows.append(_row(None, LIKED_SONGS,
+                             "added" if liked else "already_present"))
         except SpotifyError as exc:
-            rows.append(
-                {"key": None, "name": "Titres likés",
-                 "status": f"échec — {exc.detail or exc.status}"}
-            )
+            rows.append(_row(None, LIKED_SONGS, "failed",
+                             detail=str(exc.detail or exc.status)))
 
     for key in assignments[track["id"]]:
         name = config.display_name(key)
-        status_text = "proposé"
+        verdict = "proposed"
         if add:
             playlist_id = existing.get(name)
             if not playlist_id:
-                status_text = "playlist absente du compte"
+                verdict = "playlist_missing"
             elif track["id"] in spotify.playlist_track_ids(playlist_id):
-                status_text = "déjà présent"
+                verdict = "already_present"
             else:
                 spotify.add_tracks(playlist_id, [track["uri"]])
-                status_text = "ajouté"
+                verdict = "added"
         # `key` en plus du nom affiché : c'est la clé, et elle seule, qui
-        # détermine la teinte du casier — le nom peut être renommé. Champ
-        # ajouté, aucun champ existant ne bouge : les clients qui l'ignorent
-        # continuent de fonctionner. `None` pour « Titres likés », qui n'est
-        # pas un casier et n'a donc pas de couleur.
-        rows.append({"key": key, "name": name, "status": status_text})
+        # détermine la teinte du casier — le nom, lui, peut être renommé.
+        rows.append(_row(key, name, verdict))
 
     return {"track": track, "rows": rows}
 

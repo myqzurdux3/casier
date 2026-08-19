@@ -32,9 +32,9 @@
           {% if row.key %}
             <span class="swatch" style="background: {{ row.key | category_color }}"></span>
           {% endif %}
-          {{ row.name }}
+          {{ nom_de_ligne(row) }}
         </td>
-        <td class="mono">{{ row.status }}</td>
+        <td class="mono">{{ verdict(row) }}</td>
       </tr>
     {% endfor %}
   </table>
