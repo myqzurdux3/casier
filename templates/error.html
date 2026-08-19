@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Erreur — Casier{% endblock %}
+{% block title %}{{ t('panel.erreur') }} — Casier{% endblock %}
 {% block content %}
 
 <div class="card">
-  <h2>Erreur serveur</h2>
+  <h2>{{ t('panel.erreur_serveur') }}</h2>
   <p class="flash error">{{ detail }}</p>
-  <p class="muted">La trace complète est dans le journal du service :<br>
+  <p class="muted">{{ t('panel.trace_journal') }}<br>
     <code>journalctl -u spotify-sort -n 60 --no-pager</code></p>
-  <p><a href="{{ url_for('index') }}">Retour au tableau de bord</a></p>
+  <p><a href="{{ url_for('index') }}">{{ t('panel.retour_tableau') }}</a></p>
 </div>
 
 {% endblock %}

@@ -2,90 +2,86 @@
 {% block content %}
 
 <div class="card">
-  <h2>État</h2>
+  <h2>{{ t('panel.etat') }}</h2>
   <ul class="status">
-    <li>{{ '✓' if spotify_ready else '✗' }} Compte Spotify
-      {% if spotify_ready %}connecté{% else %}non connecté{% endif %}
+    <li>{{ '✓' if spotify_ready else '✗' }} {{ t('panel.compte_spotify') }}
+      {% if spotify_ready %}{{ t('panel.connecte') }}{% else %}{{ t('panel.non_connecte') }}{% endif %}
       {% if spotify_ready %}
         <form method="post" action="{{ url_for('spotify_logout') }}" class="inline">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <button class="link">oublier le token</button>
+          <button class="link">{{ t('panel.oublier_token') }}</button>
         </form>
       {% else %}
-        <a class="button small" href="{{ url_for('spotify_login') }}">Connecter</a>
+        <a class="button small" href="{{ url_for('spotify_login') }}">{{ t('panel.connecter') }}</a>
       {% endif %}
     </li>
-    <li>{{ '✓' if anthropic_ready else '✗' }} Clé API Claude
+    <li>{{ '✓' if anthropic_ready else '✗' }} {{ t('panel.cle_claude') }}
       {% if not anthropic_ready %}
-        <span class="muted">— export ANTHROPIC_API_KEY, sinon le classement échoue</span>
+        <span class="muted">{{ t('panel.cle_absente') }}</span>
       {% endif %}
     </li>
-    <li>{{ '✓' if has_liked else '·' }} Titres likés en cache : {{ liked_count }}</li>
-    <li>{{ '✓' if document else '·' }} Classement :
-      {% if document %}{{ document.track_count }} titres, {{ document.playlists|length }} playlists
-      {% else %}aucun{% endif %}
+    <li>{{ '✓' if has_liked else '·' }} {{ t('panel.likes_en_cache') }} {{ liked_count }}</li>
+    <li>{{ '✓' if document else '·' }} {{ t('panel.classement') }}
+      {% if document %}{{ t('panel.n_titres_n_playlists', titres=document.track_count, playlists=document.playlists|length) }}
+      {% else %}{{ t('panel.aucun') }}{% endif %}
     </li>
-    <li>{{ '✓' if references else '·' }} Références :
+    <li>{{ '✓' if references else '·' }} {{ t('panel.references') }}
       {% if references %}
         {% for key, items in references.items() %}<code>{{ key }}</code> ({{ items|length }}){% if not loop.last %}, {% endif %}{% endfor %}
-      {% else %}aucune{% endif %}
+      {% else %}{{ t('panel.aucune') }}{% endif %}
     </li>
   </ul>
-  <p class="muted">Redirect URI envoyé à Spotify : <code>{{ redirect_uri }}</code><br>
-    Cette URL exacte doit figurer dans les Redirect URIs de ton app Spotify —
-    la moindre différence donne <code>redirect_uri: Not matching configuration</code>.
-    {% if not base_url %}<br><strong>BASE_URL non défini</strong> : cette valeur est
-    déduite de la requête et changera selon l'adresse utilisée.{% endif %}
+  <p class="muted">{{ t('panel.redirect_uri') }} <code>{{ redirect_uri }}</code><br>
+    {{ t('panel.redirect_uri_aide') }} <code>redirect_uri: Not matching configuration</code>.
+    {% if not base_url %}<br><strong>{{ t('panel.base_url_absente') }}</strong>{{ t('panel.base_url_absente_aide') }}{% endif %}
     {% if not redirect_uri.startswith('https://') and '127.0.0.1' not in redirect_uri %}
-    <br><strong>Spotify refusera cette URL</strong> : seul le HTTPS est accepté,
-    à l'exception de <code>127.0.0.1</code>.{% endif %}</p>
+    <br><strong>{{ t('panel.https_requis') }}</strong>{{ t('panel.https_requis_aide') }}
+    <code>127.0.0.1</code>.{% endif %}</p>
 </div>
 
 <div class="card">
-  <h2>Actions</h2>
+  <h2>{{ t('panel.actions') }}</h2>
   <div class="actions">
     <form method="post" action="{{ url_for('run', action='fetch') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button {{ 'disabled' if not spotify_ready or running_job }}>1. Récupérer les likés</button>
+      <button {{ 'disabled' if not spotify_ready or running_job }}>{{ t('panel.action_fetch') }}</button>
     </form>
 
     <form method="post" action="{{ url_for('run', action='reference') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button {{ 'disabled' if not spotify_ready or running_job }}>Relire les références</button>
+      <button {{ 'disabled' if not spotify_ready or running_job }}>{{ t('panel.action_reference') }}</button>
     </form>
 
     <form method="post" action="{{ url_for('run', action='sort') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <input type="number" name="limit" min="1" placeholder="limite (test)" class="tiny">
-      <button {{ 'disabled' if not spotify_ready or running_job }}>2. Classer</button>
+      <input type="number" name="limit" min="1" placeholder="{{ t('panel.limite_test') }}" class="tiny">
+      <button {{ 'disabled' if not spotify_ready or running_job }}>{{ t('panel.action_sort') }}</button>
     </form>
 
     <form method="post" action="{{ url_for('run', action='sync-likes') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="secondary" {{ 'disabled' if not spotify_ready or running_job }}>Rattraper les likes</button>
+      <button class="secondary" {{ 'disabled' if not spotify_ready or running_job }}>{{ t('panel.action_sync') }}</button>
     </form>
 
     <form method="post" action="{{ url_for('run', action='doctor') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="secondary" {{ 'disabled' if running_job }}>Diagnostic</button>
+      <button class="secondary" {{ 'disabled' if running_job }}>{{ t('panel.action_doctor') }}</button>
     </form>
   </div>
-  <p class="muted">« Rattraper les likes » parcourt tes playlists et ajoute aux
-    Titres likés tout morceau qui n'y figure pas encore.</p>
-  <p class="muted">Le classement n'écrit que des fichiers. Rien n'est créé sur ton
-    compte tant que tu ne lances pas l'import depuis la page Résultat.</p>
+  <p class="muted">{{ t('panel.sync_aide') }}</p>
+  <p class="muted">{{ t('panel.import_aide') }}</p>
 </div>
 
 {% if document %}
 <div class="card">
-  <h2>Dernier classement</h2>
+  <h2>{{ t('panel.dernier_classement') }}</h2>
   <table>
-    <tr><th>Playlist</th><th class="num">Titres</th></tr>
+    <tr><th>{{ t('panel.playlist') }}</th><th class="num">{{ t('panel.titres') }}</th></tr>
     {% for playlist in document.playlists %}
       <tr><td>{{ playlist.name }}</td><td class="num">{{ playlist.track_ids|length }}</td></tr>
     {% endfor %}
   </table>
-  <p><a class="button" href="{{ url_for('result') }}">Voir et importer</a></p>
+  <p><a class="button" href="{{ url_for('result') }}">{{ t('panel.voir_importer') }}</a></p>
 </div>
 {% endif %}
 

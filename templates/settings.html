@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Réglages — Casier{% endblock %}
+{% block title %}{{ t('panel.reglages') }} — Casier{% endblock %}
 {% block content %}
 
 <form method="post">
   <input type="hidden" name="csrf" value="{{ csrf_token() }}">
 
   <div class="card form">
-    <h2>Général</h2>
-    <label for="tolerance">Tolérance</label>
+    <h2>{{ t('panel.general') }}</h2>
+    <label for="tolerance">{{ t('panel.tolerance') }}</label>
     <select id="tolerance" name="tolerance">
       <option value="large" {{ 'selected' if settings.tolerance == 'large' }}>
         large — playlists bien remplies, inclut en cas d'hésitation
@@ -17,7 +17,7 @@
       </option>
     </select>
 
-    <label for="playlist_prefix">Préfixe des noms créés</label>
+    <label for="playlist_prefix">{{ t('panel.prefixe') }}</label>
     <input id="playlist_prefix" name="playlist_prefix" value="{{ settings.playlist_prefix }}"
            placeholder="ex. 🎵 ">
 
@@ -29,11 +29,10 @@
   </div>
 
   <div class="card form">
-    <h2>Playlists de référence</h2>
-    <p class="muted">Une playlist existante de ton compte qui sert d'exemple pour une
-      catégorie. Ses titres sont injectés dans le prompt comme référence faisant autorité.</p>
+    <h2>{{ t('panel.playlists_reference') }}</h2>
+    <p class="muted">{{ t('panel.reference_aide') }}</p>
     <table>
-      <tr><th>Nom exact sur Spotify</th><th>Clé de catégorie</th></tr>
+      <tr><th>{{ t('panel.nom_exact') }}</th><th>{{ t('panel.cle_categorie') }}</th></tr>
       {% for name, key in settings.reference_playlists.items() %}
         <tr>
           <td><input name="ref_name" value="{{ name }}"></td>
@@ -45,13 +44,12 @@
         <td><input name="ref_key" placeholder="clé, ex. white-girl-music"></td>
       </tr>
     </table>
-    <p class="muted">Vider le nom supprime la référence. Après modification, relance
-      « Relire les références » sur le tableau de bord.</p>
+    <p class="muted">{{ t('panel.reference_vider') }}</p>
   </div>
 
   {% for group, entries in settings.categories.items() %}
   <div class="card form">
-    <h2>{{ {'moods': 'Moods', 'genres': 'Genres', 'specials': 'Catégories spéciales'}[group] }}</h2>
+    <h2>{{ t('panel.' ~ group) }}</h2>
     {% for key, spec in entries.items() %}
       <fieldset>
         <legend>
@@ -61,7 +59,7 @@
         <input name="name__{{ group }}__{{ key }}" value="{{ spec.name }}">
         <textarea name="desc__{{ group }}__{{ key }}" rows="3">{{ spec.description }}</textarea>
         <label class="inline danger">
-          <input type="checkbox" name="del__{{ group }}__{{ key }}" value="1"> supprimer
+          <input type="checkbox" name="del__{{ group }}__{{ key }}" value="1"> {{ t('panel.supprimer') }}
         </label>
       </fieldset>
     {% endfor %}
@@ -69,20 +67,20 @@
   {% endfor %}
 
   <div class="card form">
-    <h2>Nouvelle catégorie</h2>
+    <h2>{{ t('panel.nouvelle_categorie') }}</h2>
     <input name="new_key" placeholder="clé, ex. running">
     <input name="new_name" placeholder="nom affiché, ex. Running">
     <select name="new_group">
-      <option value="specials">Catégorie spéciale</option>
-      <option value="moods">Mood</option>
-      <option value="genres">Genre</option>
+      <option value="specials">{{ t('panel.categorie_speciale') }}</option>
+      <option value="moods">{{ t('panel.mood') }}</option>
+      <option value="genres">{{ t('panel.genre') }}</option>
     </select>
     <textarea name="new_desc" rows="3"
       placeholder="Description envoyée au modèle : à quoi reconnaît-on cette catégorie ?"></textarea>
   </div>
 
   <div class="card form">
-    <button>Enregistrer</button>
+    <button>{{ t('panel.enregistrer') }}</button>
     <span class="muted">Les décennies et « très vieux » sont calculées par règle,
       pas modifiables ici.</span>
   </div>

@@ -121,6 +121,12 @@ def create_app() -> Flask:
 
     app.jinja_env.globals.update(t=_traduire, nom_de_ligne=_nom_de_ligne, verdict=_verdict)
 
+    @app.context_processor
+    def _langue():
+        # `<html lang>` doit suivre la langue rendue : c'est ce qui pilote la
+        # synthèse vocale et la correction orthographique du navigateur.
+        return {"langue": i18n.resolve(request.headers.get("Accept-Language"))}
+
     _warn_about_exposure(secure)
     _warn_about_oauth()
     _register(app)
@@ -208,6 +214,15 @@ def _csrf_token() -> str:
 # --- Aides ------------------------------------------------------------------
 
 
+def _t(cle, **params):
+    """Traduit dans la langue du navigateur courant.
+
+    Doublon assumé du global Jinja : les messages flash sont produits par les
+    vues, hors de tout rendu de gabarit.
+    """
+    return i18n.t(cle, i18n.resolve(request.headers.get("Accept-Language")), **params)
+
+
 _load = service.load
 _error_text = service.error_text
 
@@ -221,7 +236,7 @@ def _start(name: str, fn, *args, **kwargs):
     """Démarre un job, ou renvoie celui déjà en cours (un seul à la fois)."""
     busy = jobs.running()
     if busy:
-        flash(f"« {busy.name} » est déjà en cours.", "warn")
+        flash(_t("erreur.job_busy", name=busy.name), "warn")
         return redirect(url_for("job_page", job_id=busy.id))
     job = jobs.start(name, fn, *args, **kwargs)
     return redirect(url_for("job_page", job_id=job.id))
@@ -280,7 +295,7 @@ def _register(app: Flask) -> None:
         if request.method == "POST":
             ip = request.remote_addr or "?"
             if _throttled(ip):
-                flash("Trop de tentatives. Réessaie dans 5 minutes.", "error")
+                flash(_t("erreur.too_many_attempts"), "error")
                 return render_template("login.html"), 429
             given = request.form.get("password", "")
             if secrets.compare_digest(given, app.config["PASSWORD"]):
@@ -291,7 +306,7 @@ def _register(app: Flask) -> None:
                 target = request.args.get("next", "")
                 return redirect(target if target.startswith("/") else url_for("index"))
             _record_attempt(ip)
-            flash("Mot de passe incorrect.", "error")
+            flash(_t("erreur.bad_password"), "error")
         _csrf_token()  # jeton disponible dès le formulaire de connexion
         return render_template("login.html")
 
@@ -319,25 +334,25 @@ def _register(app: Flask) -> None:
     @login_required
     def spotify_callback():
         if request.args.get("error"):
-            flash(f"Spotify a refusé : {request.args['error']}", "error")
+            flash(_t("flash.spotify_refuse", detail=request.args["error"]), "error")
             return redirect(url_for("index"))
         state = session.pop("state", None)
         verifier = session.pop("pkce", None)
         if not state or not verifier or request.args.get("state") != state:
-            flash("State OAuth invalide — recommence la connexion.", "error")
+            flash(_t("flash.state_invalide"), "error")
             return redirect(url_for("index"))
         try:
             auth.exchange_code(request.args.get("code", ""), verifier, _redirect_uri())
-            flash("Compte Spotify connecté.", "ok")
+            flash(_t("flash.spotify_connecte"), "ok")
         except Exception as exc:
-            flash(f"Échec de l'échange du code : {exc}", "error")
+            flash(_t("flash.echange_echoue", detail=str(exc)), "error")
         return redirect(url_for("index"))
 
     @app.post("/spotify/logout")
     @login_required
     def spotify_logout():
         auth.forget_token()
-        flash("Token Spotify oublié.", "ok")
+        flash(_t("flash.token_oublie"), "ok")
         return redirect(url_for("index"))
 
     # --- pages ---
@@ -361,7 +376,7 @@ def _register(app: Flask) -> None:
     @login_required
     def run(action):
         if action in service.NEEDS_SPOTIFY and not auth.has_token():
-            flash("Connecte d'abord ton compte Spotify.", "error")
+            flash(_t("flash.connecte_spotify"), "error")
             return redirect(url_for("index"))
 
         raw = request.form.get("limit", "").strip()
@@ -393,7 +408,7 @@ def _register(app: Flask) -> None:
     def result():
         document = _load(PLAYLISTS)
         if not document:
-            flash("Aucun classement. Lance d'abord un classement.", "warn")
+            flash(_t("flash.aucun_classement"), "warn")
             return redirect(url_for("index"))
         return render_template("result.html", document=document)
 
@@ -405,7 +420,7 @@ def _register(app: Flask) -> None:
             service.remove_from_result(key, request.form.get("track_id", ""))
         except FileNotFoundError:
             abort(404)
-        flash("Titre retiré de la playlist.", "ok")
+        flash(_t("flash.titre_retire"), "ok")
         return redirect(url_for("result") + f"#{key}")
 
     @app.route("/track", methods=["GET", "POST"])
@@ -414,7 +429,7 @@ def _register(app: Flask) -> None:
         results = None
         if request.method == "POST":
             if not auth.has_token():
-                flash("Connecte d'abord ton compte Spotify.", "error")
+                flash(_t("flash.connecte_spotify"), "error")
                 return redirect(url_for("index"))
             link = request.form.get("link", "").strip()
             add = request.form.get("add") == "1"
@@ -468,7 +483,7 @@ def _register(app: Flask) -> None:
                 }
 
             service.update_settings(data)
-            flash("Réglages enregistrés.", "ok")
+            flash(_t("flash.reglages_enregistres"), "ok")
             return redirect(url_for("settings"))
 
         return render_template("settings.html", settings=config.current_settings())

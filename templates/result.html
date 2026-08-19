@@ -1,18 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Résultat — Casier{% endblock %}
+{% block title %}{{ t('panel.resultat') }} — Casier{% endblock %}
 {% block content %}
 
 <div class="card">
-  <h2>{{ document.track_count }} titres → {{ document.playlists|length }} playlists</h2>
+  <h2>{{ t('panel.resume_resultat', titres=document.track_count, playlists=document.playlists|length) }}</h2>
 
   <form method="post" action="{{ url_for('run', action='import') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <p class="muted">Coche les playlists à créer sur ton compte. Celles dont le nom
-      existe déjà sont ignorées — renomme-les sur Spotify pour les régénérer.</p>
+    <p class="muted">{{ t('panel.import_selection_aide') }}</p>
     <p>
-      <label class="inline"><input type="checkbox" name="public" value="1"> Créer en public</label>
-      <button {{ 'disabled' if not spotify_ready or running_job }}>Importer la sélection</button>
-      <button type="button" class="secondary" onclick="toggleAll(this)">Tout cocher</button>
+      <label class="inline"><input type="checkbox" name="public" value="1"> {{ t('panel.creer_public') }}</label>
+      <button {{ 'disabled' if not spotify_ready or running_job }}>{{ t('panel.importer_selection') }}</button>
+      <button type="button" class="secondary" onclick="toggleAll(this)">{{ t('panel.tout_cocher') }}</button>
     </p>
 
     {% for playlist in document.playlists %}
@@ -23,7 +22,7 @@
             <span class="swatch" style="background: {{ playlist.key | category_color }}"></span>
             <strong class="casier-nom"
                     style="color: {{ playlist.key | category_color }}">{{ playlist.name }}</strong>
-            <span class="mono">{{ playlist.track_ids|length }} titres</span>
+            <span class="mono">{{ t('panel.n_titres', n=playlist.track_ids|length) }}</span>
           </label>
         </summary>
         <table>
@@ -36,7 +35,7 @@
               <td class="muted">{{ track.release_date[:4] }}</td>
               <td class="num">
                 <button form="rm-{{ playlist.key }}-{{ track_id }}" class="link danger"
-                        title="Retirer de cette playlist">retirer</button>
+                        title="{{ t('panel.retirer_titre') }}">{{ t('panel.retirer') }}</button>
               </td>
             </tr>
             {% endif %}
@@ -62,9 +61,11 @@
 <script>
 function toggleAll(button) {
   const boxes = document.querySelectorAll('input[name="keys"]');
-  const check = button.textContent.trim() === 'Tout cocher';
+  const cocher = {{ t('panel.tout_cocher') | tojson }};
+  const decocher = {{ t('panel.tout_decocher') | tojson }};
+  const check = button.textContent.trim() === cocher;
   boxes.forEach(box => { box.checked = check; });
-  button.textContent = check ? 'Tout décocher' : 'Tout cocher';
+  button.textContent = check ? decocher : cocher;
 }
 </script>
 {% endblock %}

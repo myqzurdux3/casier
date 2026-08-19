@@ -5,8 +5,8 @@
   <h2>{{ job.name }} <span id="status" class="badge {{ job.status }}">{{ job.status }}</span></h2>
   <pre id="log" class="log"></pre>
   <p id="done" class="hidden">
-    <a class="button" href="{{ url_for('result') }}">Voir le résultat</a>
-    <a class="button secondary" href="{{ url_for('index') }}">Tableau de bord</a>
+    <a class="button" href="{{ url_for('result') }}">{{ t('panel.resultat') }}</a>
+    <a class="button secondary" href="{{ url_for('index') }}">{{ t('panel.tableau_de_bord') }}</a>
   </p>
 </div>
 

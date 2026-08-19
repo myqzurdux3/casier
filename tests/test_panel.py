@@ -99,3 +99,43 @@ def test_le_resultat_affiche_les_carres_de_couleur(connecte, monkeypatch):
     html = connecte.get("/result").get_data(as_text=True)
     assert 'class="swatch"' in html
     assert category_color("rap-uk") in html
+
+
+@pytest.mark.parametrize("langue", ["fr", "en"])
+@pytest.mark.parametrize("page", ["/", "/result", "/track", "/settings", "/login"])
+def test_chaque_page_se_rend_dans_les_deux_langues(connecte, monkeypatch, page, langue):
+    """Un gabarit n'est exercé qu'au rendu.
+
+    Une balise Jinja mal fermée ou un paramètre de traduction absent ne se
+    verraient qu'en production, sur la page ouverte par l'utilisateur.
+    """
+    import webapp
+
+    from spotify_sort import service
+
+    document = {
+        "track_count": 1,
+        "playlists": [{"key": "rap-uk", "name": "Rap UK", "track_ids": ["t1"]}],
+        "tracks": {"t1": {"title": "T", "artists": ["A"], "release_date": "2019-01-01"}},
+    }
+
+    def faux_load(chemin):
+        if chemin == service.PLAYLISTS:
+            return document
+        if chemin == service.LIKED:
+            return [{"id": "t1"}]
+        return {"white-girl-music": [{"id": "t1"}]}
+
+    monkeypatch.setattr(webapp, "_load", faux_load)
+
+    reponse = connecte.get(page, headers={"Accept-Language": langue})
+    assert reponse.status_code == 200, page
+    assert f'<html lang="{langue}"' in reponse.get_data(as_text=True)
+
+
+def test_la_navigation_suit_la_langue(connecte):
+    from spotify_sort import i18n
+
+    for langue in ("fr", "en"):
+        html = connecte.get("/track", headers={"Accept-Language": langue}).get_data(as_text=True)
+        assert i18n.MESSAGES["panel.tableau_de_bord"][langue] in html
