@@ -7,7 +7,7 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "pretest": "tsc --outDir dist --rootDir . --module commonjs --moduleResolution node --target es2022 --skipLibCheck --noEmit false lib/api.ts lib/categoryColor.ts",
+    "pretest": "tsc --outDir dist --rootDir . --module commonjs --moduleResolution node --target es2022 --skipLibCheck --noEmit false lib/api.ts lib/categoryColor.ts lib/messages.ts",
     "test": "node --test 'tests/**/*.test.js'",
     "build:apk": "eas build --platform android --profile preview",
     "ios": "expo run:ios"

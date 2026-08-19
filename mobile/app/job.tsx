@@ -12,12 +12,14 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { ErrorBanner, Loading } from '@/components/Feedback';
 import * as api from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { bannerStyle, colors, styles } from '@/lib/theme';
 
 const POLL_MS = 1500;
 
 export default function JobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useI18n();
   const [lines, setLines] = useState<string[]>([]);
   const [job, setJob] = useState<api.JobSnapshot | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -58,7 +60,7 @@ export default function JobScreen() {
     };
   }, [id]);
 
-  if (!job && !error) return <Loading label="Ouverture du journal…" />;
+  if (!job && !error) return <Loading label={t('job.ouverture')} />;
 
   return (
     <ScrollView
@@ -78,7 +80,7 @@ export default function JobScreen() {
                 job.status === 'done' && { color: colors.ok },
               ]}
             >
-              {{ running: 'en cours…', done: 'terminé', error: 'échec' }[job.status]}
+              {t(`job.${job.status}`)}
             </Text>
           </View>
         </View>
@@ -94,7 +96,7 @@ export default function JobScreen() {
 
       <View style={styles.card}>
         {lines.length === 0 ? (
-          <Text style={styles.muted}>Pas encore de sortie.</Text>
+          <Text style={styles.muted}>{t('job.pas_de_sortie')}</Text>
         ) : (
           lines.map((line, index) => (
             <Text key={index} style={styles.mono}>

@@ -8,6 +8,7 @@ import { Empty, ErrorBanner, Loading } from '@/components/Feedback';
 import { Swatch } from '@/components/Swatch';
 import * as api from '@/lib/api';
 import { categoryColor } from '@/lib/categoryColor';
+import { useI18n } from '@/lib/i18n';
 import { colors, styles } from '@/lib/theme';
 
 /** Au-delà, la rangée mangerait la largeur du titre. */
@@ -37,6 +38,7 @@ function AutresCasiers({ keys }: { keys: string[] }) {
 }
 
 export default function ResultScreen() {
+  const { t } = useI18n();
   const [document, setDocument] = useState<api.ResultDocument | null>(null);
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<string | null>(null);
@@ -73,10 +75,10 @@ export default function ResultScreen() {
   }, [document]);
 
   function confirmRemove(key: string, trackId: string, label: string) {
-    Alert.alert('Retirer ce titre ?', label, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('tri.retirer_titre'), label, [
+      { text: t('commun.annuler'), style: 'cancel' },
       {
-        text: 'Retirer',
+        text: t('tri.retirer'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -105,7 +107,7 @@ export default function ResultScreen() {
       }
     >
       {noResult ? (
-        <Empty>Aucun classement enregistré. Lance un tri depuis l'onglet Casier.</Empty>
+        <Empty>{t('tri.vide')}</Empty>
       ) : (
         <ErrorBanner error={error} onRetry={refresh} />
       )}
@@ -114,15 +116,15 @@ export default function ResultScreen() {
         <>
           <View style={[styles.card, { borderTopWidth: 0 }]}>
             <View style={styles.row}>
-              <Text style={styles.title}>Tri</Text>
+              <Text style={styles.title}>{t('tri.titre')}</Text>
               <Text style={[styles.mono, { color: colors.muted }]}>
-                {document.playlists.length} casiers · {document.track_count} titres
+                {t('tri.comptes', {
+                  casiers: document.playlists.length,
+                  titres: document.track_count,
+                })}
               </Text>
             </View>
-            <Text style={styles.muted}>
-              Appui long sur un titre pour le retirer. Le retrait ne touche que le
-              classement local — relance un import pour le répercuter sur Spotify.
-            </Text>
+            <Text style={styles.muted}>{t('tri.aide')}</Text>
           </View>
 
           {/* Puces de filtre : la puce active prend la teinte de son casier. */}
@@ -185,7 +187,7 @@ export default function ResultScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.label, { color: colors.muted }]}>
-                    {playlist.track_ids.length} titres {open ? '▾' : '▸'}
+                    {t('tri.n_titres', { n: playlist.track_ids.length })} {open ? '▾' : '▸'}
                   </Text>
                 </Pressable>
 

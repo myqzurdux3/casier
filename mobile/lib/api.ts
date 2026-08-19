@@ -68,12 +68,27 @@ export interface Status {
   actions: Record<JobAction, string>;
 }
 
+/** Verdicts renvoyés par le serveur. Des clés stables, pas des phrases : le
+ *  client les traduit lui-même, sans aller-retour réseau. */
+export type Verdict =
+  | 'proposed'
+  | 'added'
+  | 'already_present'
+  | 'playlist_missing'
+  | 'failed';
+
+/** Nom réservé de la ligne « Titres likés » : ce n'est pas une playlist du
+ *  compte mais la bibliothèque, donc un libellé d'interface à traduire. */
+export const LIKED_SONGS = '@liked_songs';
+
 export interface TrackRow {
-  /** Clé du casier, d'où vient sa teinte. `null` pour « Titres likés », qui
-   *  n'est pas un casier. */
+  /** Clé du casier, d'où vient sa teinte. `null` pour les Titres likés, qui
+   *  ne sont pas un casier. */
   key: string | null;
   name: string;
-  status: string;
+  status: Verdict;
+  /** Détail d'un échec, hors du verdict pour rester traduisible. */
+  detail: string | null;
 }
 
 export interface ClassifyResult {
@@ -108,15 +123,21 @@ const SLOW_TIMEOUT_MS = 180_000;
 
 let baseUrl = '';
 let token = '';
+// Langue demandée au serveur. Il traduit ses messages d'erreur et les libellés
+// de tâches d'après cet en-tête ; les verdicts de classement, eux, arrivent
+// sous forme de clés et sont traduits sur place.
+let language = 'fr';
 let onUnauthorized: (() => void) | null = null;
 
 export function configure(options: {
   baseUrl?: string;
   token?: string;
+  language?: string;
   onUnauthorized?: () => void;
 }) {
   if (options.baseUrl !== undefined) baseUrl = options.baseUrl.replace(/\/+$/, '');
   if (options.token !== undefined) token = options.token;
+  if (options.language !== undefined) language = options.language;
   if (options.onUnauthorized !== undefined) onUnauthorized = options.onUnauthorized;
 }
 
@@ -165,6 +186,7 @@ async function request<T>(
       method,
       signal: controller.signal,
       headers: {
+        'Accept-Language': language,
         ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(options.auth === false ? {} : { Authorization: `Bearer ${token}` }),
       },

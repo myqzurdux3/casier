@@ -7,10 +7,12 @@ import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-na
 import { ErrorBanner } from '@/components/Feedback';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n';
 import { colors, styles } from '@/lib/theme';
 
 export default function LoginScreen() {
   const { baseUrl: known, signIn } = useAuth();
+  const { t } = useI18n();
   const [baseUrl, setBaseUrl] = useState(known);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,13 +43,9 @@ export default function LoginScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.card}>
         <Text style={styles.title}>Casier</Text>
-        <Text style={styles.muted}>
-          Le mot de passe est celui du panel web (WEB_PASSWORD). L'app le change
-          une fois contre un jeton, conservé dans le stockage sécurisé du
-          téléphone.
-        </Text>
+        <Text style={styles.muted}>{t('connexion.aide')}</Text>
 
-        <Text style={styles.heading}>Serveur</Text>
+        <Text style={styles.heading}>{t('connexion.serveur')}</Text>
         <TextInput
           style={styles.input}
           value={baseUrl}
@@ -59,7 +57,7 @@ export default function LoginScreen() {
           placeholderTextColor={colors.faint}
         />
 
-        <Text style={styles.heading}>Mot de passe</Text>
+        <Text style={styles.heading}>{t('connexion.mot_de_passe')}</Text>
         <TextInput
           style={styles.input}
           value={password}
@@ -77,7 +75,7 @@ export default function LoginScreen() {
           disabled={!canSubmit}
           onPress={submit}
         >
-          <Text style={styles.buttonText}>{busy ? 'Connexion…' : 'Se connecter'}</Text>
+          <Text style={styles.buttonText}>{busy ? t('connexion.en_cours') : t('connexion.valider')}</Text>
         </Pressable>
       </View>
     </ScrollView>

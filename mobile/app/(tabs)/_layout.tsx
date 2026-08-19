@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 
+import { useI18n } from '@/lib/i18n';
 import { colors } from '@/lib/theme';
 
 /**
@@ -28,6 +29,7 @@ function TabSquare({ focused }: { focused: boolean }) {
 const icon = ({ focused }: { focused: boolean }) => <TabSquare focused={focused} />;
 
 export default function TabsLayout() {
+  const { t } = useI18n();
   return (
     <Tabs
       screenOptions={{
@@ -56,19 +58,19 @@ export default function TabsLayout() {
           écran d'aiguillage. Deux routes pour le même chemin ne se résolvent pas. */}
       <Tabs.Screen
         name="dashboard"
-        options={{ title: 'Casier', tabBarLabel: 'Casier', tabBarIcon: icon }}
+        options={{ title: t('onglet.casier'), tabBarLabel: t('onglet.casier'), tabBarIcon: icon }}
       />
       <Tabs.Screen
         name="track"
-        options={{ title: 'Titre à l\'unité', tabBarLabel: 'Titre', tabBarIcon: icon }}
+        options={{ title: t('ecran.titre_unite'), tabBarLabel: t('onglet.titre'), tabBarIcon: icon }}
       />
       <Tabs.Screen
         name="result"
-        options={{ title: 'Tri', tabBarLabel: 'Tri', tabBarIcon: icon }}
+        options={{ title: t('onglet.tri'), tabBarLabel: t('onglet.tri'), tabBarIcon: icon }}
       />
       <Tabs.Screen
         name="settings"
-        options={{ title: 'Réglages', tabBarLabel: 'Réglages', tabBarIcon: icon }}
+        options={{ title: t('onglet.reglages'), tabBarLabel: t('onglet.reglages'), tabBarIcon: icon }}
       />
     </Tabs>
   );

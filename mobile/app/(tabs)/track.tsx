@@ -12,18 +12,20 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ErrorBanner, Loading } from '@/components/Feedback';
 import { SquareSwitch } from '@/components/SquareSwitch';
 import { Swatch } from '@/components/Swatch';
+import { useI18n } from '@/lib/i18n';
 import * as api from '@/lib/api';
 import { colors, styles } from '@/lib/theme';
 
 /** Couleur du verdict, pour repérer d'un coup d'œil ce qui a échoué. */
-function statusColor(status: string): string {
-  if (status.startsWith('échec')) return colors.error;
-  if (status === 'ajouté') return colors.accent;
-  if (status === 'playlist absente du compte') return colors.warn;
+function statusColor(status: api.Verdict): string {
+  if (status === 'failed') return colors.error;
+  if (status === 'added') return colors.accent;
+  if (status === 'playlist_missing') return colors.warn;
   return colors.muted;
 }
 
 export default function TrackScreen() {
+  const { t } = useI18n();
   const [link, setLink] = useState('');
   const [add, setAdd] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -66,10 +68,8 @@ export default function TrackScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={[styles.card, { borderTopWidth: 0 }]}>
-        <Text style={styles.title}>Classer un titre</Text>
-        <Text style={styles.label}>
-          Colle un lien, ou partage un titre depuis Spotify vers Casier
-        </Text>
+        <Text style={styles.title}>{t('titre.classer')}</Text>
+        <Text style={styles.label}>{t('titre.aide')}</Text>
 
         <TextInput
           style={styles.input}
@@ -83,10 +83,8 @@ export default function TrackScreen() {
 
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.text}>Ajouter réellement</Text>
-            <Text style={styles.muted}>
-              Range le titre dans les playlists existantes et l'ajoute aux likés.
-            </Text>
+            <Text style={styles.text}>{t('titre.ajouter')}</Text>
+            <Text style={styles.muted}>{t('titre.ajouter_aide')}</Text>
           </View>
           <SquareSwitch value={add} onValueChange={setAdd} disabled={busy} />
         </View>
@@ -96,11 +94,11 @@ export default function TrackScreen() {
           disabled={!canSubmit}
           onPress={() => classify(link.trim(), add)}
         >
-          <Text style={styles.buttonText}>{busy ? 'Classement…' : 'Classer'}</Text>
+          <Text style={styles.buttonText}>{busy ? t('titre.en_cours') : t('titre.valider')}</Text>
         </Pressable>
       </View>
 
-      {busy && <Loading label="Claude analyse le titre — jusqu'à une minute." />}
+      {busy && <Loading label={t('titre.analyse')} />}
 
       <ErrorBanner error={error} onRetry={() => classify(link.trim(), add)} />
 
@@ -109,7 +107,7 @@ export default function TrackScreen() {
           <Text style={styles.heading}>{result.track.title}</Text>
           <Text style={styles.label}>
             {result.track.artists.join(', ')} · {result.track.release_date?.slice(0, 4)} ·{' '}
-            {casiers.length} casiers
+            {t('titre.n_casiers', { n: casiers.length })}
           </Text>
 
           {result.rows.map((row, index) => (
@@ -118,18 +116,16 @@ export default function TrackScreen() {
                   retrait de même largeur pour que les noms restent alignés. */}
               {row.key ? <Swatch keyName={row.key} /> : <View style={{ width: 12 }} />}
               <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>
-                {row.name}
+                {row.name === api.LIKED_SONGS ? t('verdict.liked_songs') : row.name}
               </Text>
               <Text style={[styles.chipText, { color: statusColor(row.status) }]}>
-                {row.status}
+                {t(`verdict.${row.status}`, { detail: row.detail ?? '' })}
               </Text>
             </View>
           ))}
 
           {!add && (
-            <Text style={styles.muted}>
-              Rien n'a été modifié — active « Ajouter réellement » pour appliquer.
-            </Text>
+            <Text style={styles.muted}>{t('titre.rien_modifie')}</Text>
           )}
         </View>
       )}

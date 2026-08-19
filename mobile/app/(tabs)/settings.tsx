@@ -21,21 +21,16 @@ import {
 import { ErrorBanner, Loading } from '@/components/Feedback';
 import { SquareSwitch } from '@/components/SquareSwitch';
 import { Swatch } from '@/components/Swatch';
+import { useI18n, type LangPref } from '@/lib/i18n';
 import * as api from '@/lib/api';
 import { colors, styles } from '@/lib/theme';
 
-const GROUPS: Record<string, string> = {
-  moods: 'Moods',
-  genres: 'Genres',
-  specials: 'Catégories spéciales',
-};
-
-const TOLERANCES = [
-  { value: 'large', label: 'Large' },
-  { value: 'stricte', label: 'Stricte' },
-] as const;
+const GROUPS = ['moods', 'genres', 'specials'] as const;
+const TOLERANCES = ['large', 'stricte'] as const;
+const LANGUES: LangPref[] = ['auto', 'fr', 'en'];
 
 export default function SettingsScreen() {
+  const { t, pref, setPref } = useI18n();
   const [settings, setSettings] = useState<api.Settings | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -70,10 +65,13 @@ export default function SettingsScreen() {
 
   function removeCategory(group: string, key: string, name: string) {
     if (!settings) return;
-    Alert.alert('Supprimer cette catégorie ?', `« ${name} » ne sera plus proposée.`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(
+      t('reglages.supprimer_categorie'),
+      t('reglages.ne_sera_plus_proposee', { name }),
+      [
+      { text: t('commun.annuler'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('reglages.supprimer'),
         style: 'destructive',
         onPress: () => {
           const categories = {
@@ -85,7 +83,8 @@ export default function SettingsScreen() {
           void patch({ categories });
         },
       },
-    ]);
+      ]
+    );
   }
 
   if (!settings) {
@@ -109,11 +108,50 @@ export default function SettingsScreen() {
       <ErrorBanner error={error} onRetry={refresh} />
 
       <View style={[styles.card, { borderTopWidth: 0 }]}>
-        <Text style={styles.title}>Tolérance</Text>
-        <Text style={styles.muted}>
-          « Large » remplit davantage les playlists en acceptant les
-          correspondances raisonnables. « Stricte » ne retient que l'évident.
-        </Text>
+        <Text style={styles.title}>{t('reglages.langue')}</Text>
+        <Text style={styles.muted}>{t('reglages.langue_aide')}</Text>
+        {/* Purement local : aucun appel réseau, le serveur apprend la langue
+            par l'en-tête Accept-Language de la requête suivante. */}
+        <View
+          style={{
+            flexDirection: 'row',
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 4,
+            overflow: 'hidden',
+          }}
+        >
+          {LANGUES.map((valeur) => {
+            const actif = pref === valeur;
+            return (
+              <Pressable
+                key={valeur}
+                style={{
+                  flex: 1,
+                  paddingVertical: 13,
+                  alignItems: 'center',
+                  backgroundColor: actif ? colors.accent : 'transparent',
+                }}
+                onPress={() => setPref(valeur)}
+              >
+                <Text
+                  style={{
+                    color: actif ? colors.onAccent : colors.muted,
+                    fontSize: 15,
+                    fontWeight: actif ? '700' : '600',
+                  }}
+                >
+                  {t(`reglages.langue.${valeur}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.title}>{t('reglages.tolerance')}</Text>
+        <Text style={styles.muted}>{t('reglages.tolerance_aide')}</Text>
         {/* Un seul cadre coupé en deux, et non deux boutons voisins : les deux
             moitiés sont exclusives, la forme doit le dire. */}
         <View
@@ -125,7 +163,7 @@ export default function SettingsScreen() {
             overflow: 'hidden',
           }}
         >
-          {TOLERANCES.map(({ value, label }) => {
+          {TOLERANCES.map((value) => {
             const actif = settings.tolerance === value;
             return (
               <Pressable
@@ -149,7 +187,7 @@ export default function SettingsScreen() {
                     fontWeight: actif ? '700' : '600',
                   }}
                 >
-                  {label}
+                  {t(`reglages.${value}`)}
                 </Text>
               </Pressable>
             );
@@ -158,21 +196,21 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.title}>Playlists créées</Text>
+        <Text style={styles.title}>{t('reglages.playlists')}</Text>
 
-        <Text style={styles.label}>Préfixe</Text>
+        <Text style={styles.label}>{t('reglages.prefixe')}</Text>
         <TextInput
           style={styles.input}
           defaultValue={settings.playlist_prefix}
-          placeholder="ex. « 🎵 »"
+          placeholder={t('reglages.prefixe_exemple')}
           placeholderTextColor={colors.faint}
           onEndEditing={(event) => patch({ playlist_prefix: event.nativeEvent.text })}
         />
 
         <View style={styles.listRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.text}>Publiques</Text>
-            <Text style={styles.muted}>Privées par défaut.</Text>
+            <Text style={styles.text}>{t('reglages.publiques')}</Text>
+            <Text style={styles.muted}>{t('reglages.publiques_aide')}</Text>
           </View>
           <SquareSwitch
             value={settings.playlist_public}
@@ -182,13 +220,13 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {Object.entries(GROUPS).map(([group, label]) => {
+      {GROUPS.map((group) => {
         const entries = Object.entries(settings.categories[group] ?? {});
         const open = openGroup === group;
         return (
           <View key={group} style={styles.card}>
             <Pressable style={styles.row} onPress={() => setOpenGroup(open ? null : group)}>
-              <Text style={[styles.heading, { flex: 1 }]}>{label}</Text>
+              <Text style={[styles.heading, { flex: 1 }]}>{t(`reglages.${group}`)}</Text>
               <Text style={[styles.label, { color: colors.muted }]}>
                 {entries.length} {open ? '▾' : '▸'}
               </Text>
@@ -197,9 +235,7 @@ export default function SettingsScreen() {
             {/* Une seule fois dans l'en-tête : répété sous chaque catégorie,
                 c'était du bruit. */}
             {open && (
-              <Text style={styles.label}>
-                Appui long pour supprimer · création et descriptions depuis le panel web
-              </Text>
+              <Text style={styles.label}>{t('reglages.groupe_aide')}</Text>
             )}
 
             {open &&

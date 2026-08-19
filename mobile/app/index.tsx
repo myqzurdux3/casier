@@ -11,15 +11,17 @@ import { View } from 'react-native';
 
 import { Loading } from '@/components/Feedback';
 import { useAuth } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n';
 import { styles } from '@/lib/theme';
 
 export default function Index() {
   const { ready, signedIn } = useAuth();
+  const { t } = useI18n();
 
   if (!ready) {
     return (
       <View style={[styles.screen, { justifyContent: 'center' }]}>
-        <Loading label="Ouverture…" />
+        <Loading label={t('commun.ouverture')} />
       </View>
     );
   }

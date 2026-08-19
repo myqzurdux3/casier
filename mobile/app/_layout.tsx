@@ -15,26 +15,38 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/lib/auth';
+import { I18nProvider, useI18n } from '@/lib/i18n';
 import { colors } from '@/lib/theme';
+
+/** Séparé de la racine pour pouvoir appeler `useI18n`, qui exige d'être sous
+ *  le fournisseur. */
+function Navigateur() {
+  const { t } = useI18n();
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.text,
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ title: t('ecran.connexion') }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="job" options={{ title: t('ecran.progression') }} />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.text,
-            contentStyle: { backgroundColor: colors.bg },
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ title: 'Connexion' }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="job" options={{ title: 'Progression' }} />
-        </Stack>
-      </SafeAreaProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <Navigateur />
+        </SafeAreaProvider>
+      </AuthProvider>
+    </I18nProvider>
   );
 }

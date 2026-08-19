@@ -8,6 +8,7 @@ import { Empty, ErrorBanner, Loading } from '@/components/Feedback';
 import { Swatch } from '@/components/Swatch';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useI18n, type Traduire } from '@/lib/i18n';
 import { bannerStyle, colors, styles } from '@/lib/theme';
 
 /**
@@ -26,9 +27,9 @@ const SECONDES_PAR_LOT = 25;
  * Le premier lot part seul — il amorce le cache de prompt que les suivants
  * relisent —, puis les autres passent par vagues de MAX_CONCURRENCY.
  */
-function estimation(likedCount: number): string {
+function estimation(likedCount: number, t: Traduire): string {
   const lots = Math.ceil(likedCount / BATCH_SIZE);
-  if (lots === 0) return 'rien à classer';
+  if (lots === 0) return t('accueil.rien_a_classer');
   const vagues = 1 + Math.ceil((lots - 1) / MAX_CONCURRENCY);
   const secondes = vagues * SECONDES_PAR_LOT;
   return secondes < 90 ? `~${secondes} s` : `~${Math.round(secondes / 60)} min`;
@@ -36,12 +37,12 @@ function estimation(likedCount: number): string {
 
 const ACTION_PRINCIPALE: api.JobAction = 'sort';
 
-const SECONDAIRES: { action: api.JobAction; label: string; hint: string }[] = [
-  { action: 'fetch', label: 'Récupérer les likés', hint: 'Relit la bibliothèque Spotify.' },
-  { action: 'import', label: 'Importer', hint: 'Crée les playlists sur le compte.' },
-  { action: 'sync-likes', label: 'Rattraper les likes', hint: 'Like les titres des playlists.' },
-  { action: 'reference', label: 'Playlists de référence', hint: 'Relit tes exemples.' },
-  { action: 'doctor', label: 'Diagnostic', hint: 'Vérifie scopes et endpoints.' },
+const SECONDAIRES: api.JobAction[] = [
+  'fetch',
+  'import',
+  'sync-likes',
+  'reference',
+  'doctor',
 ];
 
 function Chip({ on, label }: { on: boolean; label: string }) {
@@ -63,6 +64,7 @@ function Chip({ on, label }: { on: boolean; label: string }) {
 
 export default function DashboardScreen() {
   const { signOut } = useAuth();
+  const { t } = useI18n();
   const [status, setStatus] = useState<api.Status | null>(null);
   const [result, setResult] = useState<api.ResultDocument | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -117,7 +119,7 @@ export default function DashboardScreen() {
     }
   }
 
-  if (!status && !error) return <Loading label="Lecture de l'état…" />;
+  if (!status && !error) return <Loading label={t('commun.lecture_etat')} />;
 
   const casiers = result
     ? [...result.playlists].sort((a, b) => b.track_ids.length - a.track_ids.length).slice(0, 4)
@@ -138,13 +140,13 @@ export default function DashboardScreen() {
           {/* 1 — Métriques */}
           <View style={[styles.card, { borderTopWidth: 0 }]}>
             <View style={styles.row}>
-              <Text style={styles.title}>Casier</Text>
+              <Text style={styles.title}>{t('onglet.casier')}</Text>
               <Text style={[styles.label, { color: colors.faint }]}>v{status.version}</Text>
             </View>
             <View style={{ flexDirection: 'row', marginTop: 4 }}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.metric}>{status.liked_count}</Text>
-                <Text style={styles.label}>Titres en cache</Text>
+                <Text style={styles.label}>{t('accueil.titres_en_cache')}</Text>
               </View>
               <View
                 style={{
@@ -158,23 +160,26 @@ export default function DashboardScreen() {
                 <Text style={styles.metric}>
                   {status.has_result ? status.playlist_count : '—'}
                 </Text>
-                <Text style={styles.label}>Casiers</Text>
+                <Text style={styles.label}>{t('accueil.casiers')}</Text>
               </View>
             </View>
 
             {/* 2 — Puces d'état */}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <Chip on={status.spotify_ready} label={status.spotify_ready ? 'Compte lié' : 'Compte non lié'} />
-              <Chip on={status.anthropic_ready} label={status.anthropic_ready ? 'Clé Claude OK' : 'Clé Claude absente'} />
+              <Chip
+                on={status.spotify_ready}
+                label={t(status.spotify_ready ? 'accueil.compte_lie' : 'accueil.compte_non_lie')}
+              />
+              <Chip
+                on={status.anthropic_ready}
+                label={t(status.anthropic_ready ? 'accueil.cle_ok' : 'accueil.cle_absente')}
+              />
             </View>
           </View>
 
           {!status.spotify_ready && (
             <View style={[styles.banner, bannerStyle('warn')]}>
-              <Text style={styles.text}>
-                Connecte ton compte Spotify depuis le panel web : la liaison OAuth
-                passe par un navigateur.
-              </Text>
+              <Text style={styles.text}>{t('accueil.avertissement_spotify')}</Text>
             </View>
           )}
 
@@ -185,7 +190,7 @@ export default function DashboardScreen() {
                 style={styles.button}
                 onPress={() => router.push({ pathname: '/job', params: { id: status.job!.id } })}
               >
-                <Text style={styles.buttonText}>Suivre « {status.job.name} »</Text>
+                <Text style={styles.buttonText}>{t('accueil.suivre_job', { name: status.job.name })}</Text>
               </Pressable>
             ) : (
               <>
@@ -194,10 +199,13 @@ export default function DashboardScreen() {
                   disabled={busy}
                   onPress={() => launch(ACTION_PRINCIPALE)}
                 >
-                  <Text style={styles.buttonText}>Trier</Text>
+                  <Text style={styles.buttonText}>{t('accueil.trier')}</Text>
                 </Pressable>
                 <Text style={[styles.label, { textAlign: 'center' }]}>
-                  {status.liked_count} titres · {estimation(status.liked_count)}
+                  {t('accueil.estimation', {
+                    count: status.liked_count,
+                    duree: estimation(status.liked_count, t),
+                  })}
                 </Text>
               </>
             )}
@@ -206,7 +214,7 @@ export default function DashboardScreen() {
           {/* 4 — Derniers casiers remplis */}
           {casiers.length > 0 && (
             <View style={styles.card}>
-              <Text style={styles.label}>Casiers les plus remplis</Text>
+              <Text style={styles.label}>{t('accueil.casiers_remplis')}</Text>
               {casiers.map((casier) => (
                 <Pressable
                   key={casier.key}
@@ -227,8 +235,8 @@ export default function DashboardScreen() {
 
           {/* 5 — Tâches secondaires */}
           <View style={styles.card}>
-            <Text style={styles.label}>Autres tâches</Text>
-            {SECONDAIRES.map(({ action, label, hint }) => (
+            <Text style={styles.label}>{t('accueil.autres_taches')}</Text>
+            {SECONDAIRES.map((action) => (
               <Pressable
                 key={action}
                 style={[styles.listRow, busy && styles.disabled]}
@@ -236,8 +244,8 @@ export default function DashboardScreen() {
                 onPress={() => launch(action)}
               >
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={{ color: colors.text, fontSize: 16 }}>{label}</Text>
-                  <Text style={styles.label}>{hint}</Text>
+                  <Text style={{ color: colors.text, fontSize: 16 }}>{t(`tache.${action}`)}</Text>
+                  <Text style={styles.label}>{t(`tache.${action}.aide`)}</Text>
                 </View>
                 <Text style={{ color: colors.faint, fontSize: 16 }}>▸</Text>
               </Pressable>
@@ -247,14 +255,14 @@ export default function DashboardScreen() {
           {/* 6 — Déconnexion */}
           <View style={styles.card}>
             <Pressable style={styles.listRow} onPress={disconnect}>
-              <Text style={[styles.text, { flex: 1, color: colors.muted }]}>Déconnexion</Text>
+              <Text style={[styles.text, { flex: 1, color: colors.muted }]}>{t('accueil.deconnexion')}</Text>
               <Text style={{ color: colors.faint, fontSize: 16 }}>▸</Text>
             </Pressable>
           </View>
         </>
       )}
 
-      {!status && error ? <Empty>Impossible de lire l'état du serveur.</Empty> : null}
+      {!status && error ? <Empty>{t('accueil.etat_illisible')}</Empty> : null}
     </ScrollView>
   );
 }

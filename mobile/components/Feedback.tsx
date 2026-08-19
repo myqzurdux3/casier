@@ -9,6 +9,7 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { ApiError } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { bannerStyle, colors, styles } from '@/lib/theme';
 
 export function ErrorBanner({
@@ -18,6 +19,7 @@ export function ErrorBanner({
   error: unknown;
   onRetry?: () => void;
 }) {
+  const { t } = useI18n();
   if (!error) return null;
 
   const apiError = error instanceof ApiError ? error : null;
@@ -30,21 +32,19 @@ export function ErrorBanner({
 
       {apiError?.code === 'spotify_disconnected' && (
         <Text style={styles.muted}>
-          La liaison OAuth passe par un navigateur : ouvre le panel web sur un
-          ordinateur et connecte ton compte Spotify depuis le tableau de bord.
+          {t('erreur.oauth_navigateur')}
         </Text>
       )}
 
       {apiError?.code === 'certificate' && (
         <Text style={styles.muted}>
-          Sur le serveur : ./deploy/make-certs.sh, puis copie secrets/ca.crt dans
-          mobile/assets/ et reconstruis l'APK.
+          {t('erreur.certificat')}
         </Text>
       )}
 
       {onRetry && (apiError?.isTransient ?? true) && (
         <Pressable style={styles.buttonGhost} onPress={onRetry}>
-          <Text style={styles.buttonGhostText}>Réessayer</Text>
+          <Text style={styles.buttonGhostText}>{t('commun.reessayer')}</Text>
         </Pressable>
       )}
     </View>
