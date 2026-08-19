@@ -23,3 +23,10 @@ mobile/dist/
 mobile/assets/ca.crt
 # Clé de signature de l'APK — à sauvegarder hors dépôt.
 mobile/*.keystore
+
+# Notes de travail locales : elles contiennent des clés d'API et l'adresse
+# réelle du serveur. Elles ont déjà fuité une fois dans l'historique — ne
+# jamais les suivre.
+to-run-before.txt
+how-to-build.txt
+*.local.sh

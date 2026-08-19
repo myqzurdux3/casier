@@ -1,24 +1,47 @@
 # Casier
 
-Récupère tous tes titres likés Spotify, les trie en playlists thématiques
-(mood, genre, décennie, catégories spéciales), exporte le résultat en JSON/CSV,
-puis crée les playlists sur ton compte quand tu le décides.
+**Français** · [English](README.en.md)
+
+Range tes titres likés Spotify dans des playlists thématiques — mood, genre,
+décennie — en confiant le jugement à Claude. Ligne de commande, panel web et
+app Android, sur le même moteur.
 
 Un titre peut appartenir à plusieurs playlists, et aucun titre n'est laissé de côté.
 
-## Comment ça marche
+```bash
+python main.py fetch    # lit tes titres likés
+python main.py sort     # les classe — n'écrit que des fichiers
+python main.py import out/playlists.json   # crée les playlists sur ton compte
+```
 
-Le tri se fait en deux étages :
+Rien n'est créé sur ton compte tant que tu ne lances pas `import`.
+
+---
+
+## Pourquoi Claude plutôt que l'API Spotify
+
+Spotify a supprimé l'accès aux *audio features* (energy, danceability, valence,
+tempo) pour les nouvelles applications fin 2024. Et même du temps où elles
+existaient, aucune API ne savait dire qu'un morceau est un classique, un troll,
+ou vient d'une bande originale de série.
+
+Le tri se fait donc en deux étages :
 
 | Étage | Ce qu'il décide | Comment |
 |---|---|---|
-| Règles | décennies (1960s → 2020s), « très vieux » | date de sortie de l'album |
-| Claude | mood, genre, classiques, troll, films/séries, white girl music… | jugement sémantique sur les métadonnées |
+| Règles | décennies (1950s → 2020s), « très vieux » | date de sortie de l'album |
+| Claude | mood, genre, classiques, troll, films et séries… | jugement sémantique sur les métadonnées |
 
-> **Pourquoi Claude et pas l'API Spotify ?** Spotify a supprimé l'accès aux
-> *audio features* (energy, danceability, valence, tempo) pour les nouvelles
-> applications fin 2024. Et même avec elles, aucune API ne sait dire si un
-> morceau est « troll » ou apparaît dans une série.
+## Les trois surfaces
+
+| | Pour quoi faire |
+|---|---|
+| **CLI** | le moteur complet, scriptable, idéal pour la première grosse passe |
+| **Panel web** | tout piloter depuis un navigateur, suivre un tri en direct, éditer la taxonomie |
+| **App Android** | depuis Spotify, « Partager → Casier » range un titre en un geste |
+
+Les trois partagent `service.py` et `jobs.py` : un tri lancé depuis le téléphone
+se suit depuis l'ordinateur, et réciproquement.
 
 ## Playlists générées
 
@@ -29,7 +52,8 @@ Le tri se fait en deux étages :
 
 Tout est modifiable dans `spotify_sort/config.py` : ajoute une clé au bon
 dictionnaire avec une description, elle est automatiquement prise en compte par
-le prompt, l'export et l'import.
+le prompt, l'export et l'import. Le panel web permet la même chose sans toucher
+au code.
 
 ### Régler le remplissage
 
@@ -51,10 +75,9 @@ REFERENCE_PLAYLISTS = {
 }
 ```
 
-Ses titres sont lus et injectés dans le prompt comme référence faisant autorité :
-le modèle en déduit l'esprit commun et l'applique largement, y compris à des
-artistes absents de ta liste. `sort` les récupère tout seul au premier lancement ;
-`python main.py reference` force la relecture après avoir modifié la playlist.
+Ses titres sont injectés dans le prompt comme référence faisant autorité : le
+modèle en déduit l'esprit commun et l'applique largement, y compris à des
+artistes absents de ta liste.
 
 ## Installation
 
@@ -110,24 +133,6 @@ python main.py import out/playlists.json
 python main.py import out/playlists.json --only troll white-girl-music rap-us
 ```
 
-### Cohérence avec les Titres likés
-
-Tout morceau rangé dans une playlist est aussi ajouté aux Titres likés s'il n'y
-est pas déjà — que ce soit via `import` ou `track --add`.
-
-Pour rattraper l'existant :
-
-```bash
-python main.py sync-likes --dry-run   # liste sans rien modifier
-python main.py sync-likes             # like les manquants
-```
-
-Parcourt les playlists dont tu es propriétaire, repère les titres absents des
-likés et les ajoute. Bouton équivalent sur le tableau de bord web.
-
-> Ces opérations exigent le scope `user-library-modify`. Un token obtenu avant
-> son ajout ne l'a pas : l'outil le détecte et redemande une autorisation.
-
 ### Trier un titre à l'unité
 
 Pour un morceau découvert après coup, sans relancer tout le classement :
@@ -145,8 +150,21 @@ python main.py track LIEN1 LIEN2 LIEN3 --add
 
 Accepte un lien `open.spotify.com` (avec ou sans `?si=`, y compris les URL
 `/intl-xx/`), une URI `spotify:track:…` ou un ID brut. Avec `--add`, un titre
-déjà présent n'est pas ajouté deux fois, et les playlists qui n'existent pas
-encore sur ton compte sont signalées plutôt que créées.
+déjà présent n'est pas ajouté deux fois, et les playlists absentes de ton compte
+sont signalées plutôt que créées.
+
+### Cohérence avec les Titres likés
+
+Tout morceau rangé dans une playlist est aussi ajouté aux Titres likés s'il n'y
+est pas déjà. Pour rattraper l'existant :
+
+```bash
+python main.py sync-likes --dry-run   # liste sans rien modifier
+python main.py sync-likes             # like les manquants
+```
+
+> Ces opérations exigent le scope `user-library-modify`. Un token obtenu avant
+> son ajout ne l'a pas : l'outil le détecte et redemande une autorisation.
 
 ### Fichiers produits
 
@@ -159,13 +177,11 @@ encore sur ton compte sont signalées plutôt que créées.
 Comme `playlists.json` est un simple fichier texte, tu peux le corriger à la
 main avant l'import : déplacer un titre, vider une playlist, renommer.
 
-## Interface web
+## Panel web
 
-Mono-utilisateur, pensée pour tourner derrière un reverse proxy HTTPS.
+Mono-utilisateur, pensé pour tourner derrière un reverse proxy HTTPS.
 
 ```bash
-pip install -r requirements.txt
-
 export WEB_PASSWORD='une phrase de passe longue'   # obligatoire, 12 car. minimum
 export BASE_URL='https://sort.mondomaine.fr'       # obligatoire
 export SPOTIFY_CLIENT_ID='...'
@@ -175,7 +191,7 @@ gunicorn -w 1 -b 127.0.0.1:8000 webapp:app
 ```
 
 Ajoute `https://sort.mondomaine.fr/spotify/callback` aux Redirect URIs de ton app
-Spotify — l'interface l'affiche sur le tableau de bord si tu as un doute.
+Spotify — le tableau de bord affiche l'URL exacte si tu as un doute.
 
 > **`-w 1` n'est pas optionnel.** Les tâches et leur journal vivent en mémoire du
 > processus. Avec plusieurs workers, une page de progression tomberait au hasard
@@ -184,141 +200,81 @@ Spotify — l'interface l'affiche sur le tableau de bord si tu as un doute.
 `TRUST_PROXY=1` est nécessaire derrière un reverse proxy : sans lui, l'app ignore
 `X-Forwarded-Proto` et génère un `redirect_uri` en `http://` que Spotify refuse.
 
-### Exposer directement sur le réseau (0.0.0.0)
-
-Sans reverse proxy, sur un LAN ou un VPN de confiance :
-
-```bash
-export WEB_PASSWORD='une phrase de passe longue'
-export HOST=0.0.0.0
-export ALLOW_INSECURE=1        # sinon le cookie exige HTTPS et la connexion boucle
-gunicorn -w 1 -b 0.0.0.0:8000 webapp:app
-```
-
-Laisse `TRUST_PROXY` **non défini** : exposé en direct, faire confiance à
-`X-Forwarded-For` laisserait n'importe qui forger son IP et contourner la limite
-de tentatives de connexion.
-
-Trois conséquences à connaître :
-
-1. **Tout circule en clair.** Mot de passe et cookie de session sont lisibles par
-   quiconque écoute le réseau. Le serveur affiche un avertissement au démarrage.
-   Acceptable sur un LAN privé ou un VPN, jamais sur Internet.
-2. **`ALLOW_INSECURE=1` retire le flag `Secure` du cookie.** `HttpOnly` et
-   `SameSite=Lax` restent en place, mais le cookie devient interceptable.
-3. **La connexion Spotify ne peut pas se faire depuis cette adresse.** Spotify
-   n'accepte que des Redirect URIs en HTTPS, à l'exception de l'adresse de
-   bouclage littérale `127.0.0.1`. Un `http://192.168.x.x:8000/spotify/callback`
-   est refusé côté Spotify.
-
-   Contournement : autorise une fois en local, puis sers-toi du dashboard réseau.
-   Le token est mis en cache dans `~/.spotify-sort/token.json` et partagé par la
-   CLI et l'interface web.
-
-   ```bash
-   python main.py doctor      # sur la machine, ouvre le navigateur en 127.0.0.1
-   ```
-
-Pour un accès distant réel, un VPN (Tailscale, WireGuard) est préférable à une
-exposition directe : tu gardes un LAN de confiance sans ouvrir de port.
-
-### Pages
+Le déploiement complet — TLS, unité systemd durcie, certificat pour l'app
+Android — est décrit dans [`deploy/README.md`](deploy/README.md).
 
 | Page | Rôle |
 |---|---|
 | Tableau de bord | état (Spotify, clé Claude, caches), lancement des tâches, diagnostic |
-| Progression | journal en direct de la tâche en cours, rafraîchi chaque seconde |
+| Progression | journal en direct de la tâche en cours |
 | Résultat | playlists et titres, retrait d'un titre, sélection puis import |
 | Titre à l'unité | coller un lien, voir les playlists proposées, ajouter |
 | Réglages | tolérance, playlists de référence, édition de la taxonomie |
 
 Les réglages sont écrits dans `out/settings.json` et surchargent `config.py` à
-chaud, sans toucher au code. La CLI lit le même fichier : les deux restent
-cohérentes.
+chaud. La CLI lit le même fichier : les deux restent cohérentes.
 
 ### Sécurité
 
-Ce qui est en place, puisque l'instance est exposée :
-
 - mot de passe obligatoire (refus de démarrer sans, ou sous 12 caractères),
-  comparé en temps constant, avec limite de 8 tentatives par IP sur 5 minutes ;
-- cookie de session `HttpOnly`, `SameSite=Lax`, `Secure` (désactivable par
-  `ALLOW_INSECURE=1` **pour un test local en HTTP uniquement**) ;
+  comparé en temps constant, limite de 8 tentatives par IP sur 5 minutes ;
+- cookie de session `HttpOnly`, `SameSite=Lax`, `Secure` ;
 - jeton CSRF exigé sur toute requête POST, régénéré à la connexion ;
 - `?next=` restreint aux chemins internes, pas d'open redirect ;
-- `meta noindex`, et aucun secret rendu dans les pages.
+- `meta noindex`, aucun secret rendu dans les pages.
 
 Ce qui reste à ta charge : **le HTTPS**. Sans lui, le mot de passe circule en
-clair et Spotify refusera le callback. Exemple nginx :
-
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:8000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-}
-```
-
-`X-Forwarded-Proto` est nécessaire : sans lui l'app génère un `redirect_uri` en
-`http://`, que Spotify rejette.
-
-### Service systemd
-
-```ini
-[Unit]
-Description=spotify-sort
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/spotify-sort
-Environment=WEB_PASSWORD=...
-Environment=BASE_URL=https://sort.mondomaine.fr
-Environment=SPOTIFY_CLIENT_ID=...
-Environment=ANTHROPIC_API_KEY=...
-ExecStart=/opt/spotify-sort/.venv/bin/gunicorn -w 1 -b 127.0.0.1:8000 webapp:app
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Mets plutôt les secrets dans un fichier `EnvironmentFile=` en `chmod 600` : les
-`Environment=` d'une unité systemd sont lisibles par tous via `systemctl show`.
+clair et Spotify refusera le callback.
 
 ## App Android
 
-Une app native pilote le tout depuis le téléphone, avec la même couverture que
-le panel. Le geste qui la justifie : depuis Spotify, « Partager → spotify-sort »
-classe le titre et l'ajoute aux playlists comme aux likés.
+Le geste qui la justifie : depuis Spotify, « Partager → Casier » classe le titre
+et l'ajoute aux playlists comme aux likés, sans quitter l'app.
 
 ```
-mobile/          projet Expo — voir mobile/README.md
-api.py           API JSON /api/v1 consommée par l'app
+mobile/    projet Expo — voir mobile/README.md
+api.py     API JSON /api/v1 consommée par l'app
 ```
 
 L'app s'authentifie avec le même `WEB_PASSWORD`, échangé une fois contre un
 jeton conservé dans le stockage sécurisé du téléphone. Le serveur est joint en
-TLS avec un certificat auto-signé que l'app est seule à accepter — voir
-`deploy/README.md`, section 4.
+TLS avec un certificat auto-signé que l'app est **seule** à accepter : les
+autorités système sont explicitement exclues pour cet hôte.
 
-### Architecture
+L'adresse du serveur n'a pas de valeur par défaut utilisable — le dépôt publie
+`192.0.2.10`, une adresse de documentation. Renseigne la tienne à la
+construction :
+
+```bash
+export SPOTIFY_SORT_HOST=ton.serveur SPOTIFY_SORT_PORT=8000
+npx expo prebuild --platform android --clean
+```
+
+## Langues
+
+L'app et le panel sont bilingues français / anglais. L'app suit la langue du
+téléphone, avec un choix explicite dans Réglages ; le panel suit l'en-tête
+`Accept-Language` du navigateur.
+
+Ne sont **pas** traduits, délibérément : les noms de playlists, qui sont les
+noms réels sur ton compte Spotify et que l'import retrouve par leur nom, et les
+descriptions de catégories, qui constituent le prompt envoyé à Claude.
+
+## Architecture
 
 ```
 spotify_sort/service.py   tâches métier, aucune dépendance Flask
 webapp.py                 façade HTML : Jinja, session cookie, CSRF
 api.py                    façade JSON : jeton porteur, erreurs à codes stables
+spotify_sort/jobs.py      tâches longues en arrière-plan, journal consultable
 ```
-
-Les deux façades partagent `service.py` et `jobs.py` : l'app et le panel voient
-le même job en cours et les mêmes fichiers de sortie. Un tri lancé depuis le
-téléphone se suit depuis l'ordinateur, et réciproquement.
 
 ### Tests
 
 ```bash
-python -m pytest          # 73 tests : API, jobs, service, non-régression du panel
-cd mobile && npm test     # client API contre un serveur local
+python -m pytest          # API, jobs, service, non-régression du panel, traductions
+cd mobile && npm test     # client API, couleurs, catalogue de messages
+cd mobile && npx tsc --noEmit
 ```
 
 ## Dépannage
@@ -332,8 +288,10 @@ bibliothèque et des playlists, accès au catalogue, et création d'une playlist
 test aussitôt supprimée. Chaque ligne indique ✓ ou ✗ avec le message exact de
 Spotify, ce qui localise précisément un `403`.
 
-**Migration Web API du 9 mars 2026** — Spotify a supprimé plusieurs endpoints
-d'écriture. Cet outil utilise les remplaçants :
+### Migration Web API du 9 mars 2026
+
+Spotify a supprimé plusieurs endpoints d'écriture. Cet outil utilise les
+remplaçants :
 
 | Supprimé (403 pour tous) | Remplaçant utilisé ici |
 |---|---|
@@ -350,32 +308,24 @@ le corps, et plafonne à 40 par appel. Et **tous** les endpoints groupés par
 Un `403` à l'écriture avec l'un des chemins de gauche dans l'URL signale du code
 resté sur l'ancienne API.
 
-**`403` à la création alors que toutes les lectures passent** — le token est
-valide et le chemin est le bon ; le blocage est côté compte ou app. `doctor`
-affiche le corps brut de la réponse Spotify et te donne un `curl` prêt à coller
+### `403` à la création alors que toutes les lectures passent
+
+Le token est valide et le chemin est le bon ; le blocage est côté compte ou app.
+`doctor` affiche le corps brut de la réponse et donne un `curl` prêt à coller
 pour reproduire hors de l'outil. Même 403 en curl ⇒ ce n'est pas le code.
 
 1. **App en Development Mode** : dashboard Spotify → ton app → *User Management*.
-   Ton compte doit y figurer avec le nom d'affichage **et** l'e-mail exacts du
-   compte Spotify.
+   Ton compte doit y figurer avec le nom d'affichage **et** l'e-mail exacts.
 2. **Compte incapable de créer une playlist** : vérifie à la main sur
    open.spotify.com. Un compte enfant ou géré ne le peut pas.
 3. **Mauvais compte connecté** : `doctor` affiche l'identifiant vu par l'API.
 
-**`403` sur `/v1/artists`** — c'est l'étape qui récupère les genres des artistes.
-Elle est facultative : l'outil bascule sur des requêtes artiste par artiste, et
-si c'est aussi refusé il continue sans genres. La classification se fait alors
-sur titre / artiste / album / année, ce qui reste l'essentiel du signal.
+### `403` sur `/v1/artists`
 
-Le message exact renvoyé par Spotify est affiché — il indique la cause
-(portée de token, app en Development Mode, restriction de marché…). Pour tester
-la même requête à la main :
-
-```bash
-curl -s -H "Authorization: Bearer $(python -c \
-  'import json,pathlib;print(json.loads((pathlib.Path.home()/".spotify-sort/token.json").read_text())["access_token"])')" \
-  "https://api.spotify.com/v1/artists/0TnOYISbd1XYRBk9myaseg" | head -c 400
-```
+C'est l'étape qui récupère les genres des artistes. Elle est facultative :
+l'outil bascule sur des requêtes artiste par artiste, et si c'est aussi refusé
+il continue sans genres. La classification se fait alors sur titre / artiste /
+album / année, ce qui reste l'essentiel du signal.
 
 Si tu changes les scopes dans `config.py`, supprime `~/.spotify-sort/token.json`
 pour forcer une nouvelle autorisation — le token en cache garde les anciens.
@@ -385,8 +335,7 @@ pour forcer une nouvelle autorisation — le token en cache garde les anciens.
 - L'import **saute** toute playlist dont le nom existe déjà sur ton compte —
   aucune playlist existante n'est modifiée ou écrasée.
 - L'import est reprenable : une playlist en échec est signalée et les suivantes
-  continuent ; relancer la même commande ne recrée pas ce qui existe déjà.
-  Après trois échecs d'affilée il s'arrête, le problème étant global.
+  continuent. Après trois échecs d'affilée il s'arrête, le problème étant global.
 - Les playlists sont créées en privé (`PLAYLIST_PUBLIC` dans `config.py`, ou
   `--public`).
 - Coût Claude : les titres partent par lots de 40 avec le prompt en cache.
@@ -395,3 +344,10 @@ pour forcer une nouvelle autorisation — le token en cache garde les anciens.
   playlist décennie plutôt que de faire planter tout le run.
 - `fetch` écrit `liked.json` **avant** d'aller chercher les genres : un échec à
   cette étape ne fait jamais reperdre les titres déjà récupérés.
+
+## Licence
+
+MIT — voir [LICENSE](LICENSE).
+
+Ce projet n'est ni affilié à Spotify ni à Anthropic. « Spotify » est une marque
+déposée de Spotify AB, employée ici uniquement pour désigner le service.
